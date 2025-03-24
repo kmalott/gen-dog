@@ -74,7 +74,7 @@ def train(exp_dir: str = "logs",
             loss_val = mse_loss(img_hat, img)
             lpips_val = lpips_loss(img_hat, img)
             train_loss += loss_val.item()
-            train_lpips += lpips_val.item()
+            train_lpips += lpips_val.sum().item()
             optimizer.zero_grad()
             loss_val.backward()
             optimizer.step()
