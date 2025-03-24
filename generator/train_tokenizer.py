@@ -7,6 +7,7 @@ import torch
 import torch.utils.tensorboard as tb
 from tqdm import tqdm
 import torchvision
+import lpips
 
 from .tokenizer import BSQTokenizer
 from .data import load_data_loader, load_data
@@ -38,19 +39,19 @@ def train(exp_dir: str = "logs",
     model.train()
 
     # load data loaders
-    train_data, val_data = load_data_loader()
+    # train_data, val_data = load_data_loader()
     # alternatively run: (if dataloaders haven't been made yet)
-    # train_data, val_data = load_data('./rawdata/Images/', batch_size=batch_size)
+    train_data, val_data = load_data('./rawdata/Images/', batch_size=batch_size)
 
     # create loss functions and optimizer
     mse_loss = torch.nn.MSELoss()
-    # lpips_loss = ...
+    lpips_loss = lpips.LPIPS(net='vgg')
     # gan_loss = ...
     # entropy_loss = ...
     optimizer = torch.optim.AdamW(params=model.parameters(), lr=lr)
 
     global_step = 0
-    metrics = {"train_loss": [], "val_loss": []}
+    metrics = {"train_loss": [], "val_loss": [], "train_lpips": [], "val_lpips": []}
 
     # training loop
     for epoch in range(num_epoch):
@@ -61,18 +62,23 @@ def train(exp_dir: str = "logs",
         model.train()
         train_loss = torch.tensor([0.0])
         val_loss = torch.tensor([0.0])
+        train_lpips = torch.tensor([0.0])
+        val_lpips = torch.tensor([0.0])
 
         for img, label in tqdm(train_data):
             # img = img.float() / 255.0 - 0.5
             img, label = img.to(device), label.to(device)
             img_hat = model(img)
             loss_val = mse_loss(img_hat, img)
+            lpips_val = lpips_loss(img_hat, img)
             train_loss += loss_val.item()
+            train_lpips += lpips_val.item()
             optimizer.zero_grad()
             loss_val.backward()
             optimizer.step()
             global_step += 1
         metrics["train_loss"].append(train_loss)
+        metrics["train_lpips"].append(train_lpips)
 
         # disable gradient computation and switch to evaluation mode
         with torch.inference_mode():
@@ -82,8 +88,11 @@ def train(exp_dir: str = "logs",
                 img, label = img.to(device), label.to(device)
                 img_hat = model(img)
                 loss_val = mse_loss(img_hat, img)
+                lpips_val = lpips_loss(img_hat, img)
                 val_loss += loss_val.item()
+                val_lpips += lpips_val.item()
             metrics["val_loss"].append(val_loss)
+            metrics["val_lpips"].append(val_lpips)
 
         # log average train and val accuracy to tensorboard
         epoch_train_loss = torch.as_tensor(metrics["train_loss"])
@@ -103,7 +112,8 @@ def train(exp_dir: str = "logs",
             f"Epoch {epoch + 1:2d} / {num_epoch:2d}: "
             f"train_loss={epoch_train_loss} "
             f"val_loss={epoch_val_loss} "
-            f"train_loss_mean={train_loss.mean()} "
+            f"train_lpips={train_lpips} "
+            f"val_lpips={val_lpips} "
         )
 
     # save a copy of model weights in the log directory
