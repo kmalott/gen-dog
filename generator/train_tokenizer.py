@@ -50,6 +50,8 @@ def train(exp_dir: str = "logs",
     # entropy_loss = ...
     optimizer = torch.optim.AdamW(params=model.parameters(), lr=lr)
 
+    lpips_loss.to(device)
+
     global_step = 0
     metrics = {"train_loss": [], "val_loss": [], "train_lpips": [], "val_lpips": []}
 
