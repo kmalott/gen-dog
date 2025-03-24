@@ -4,3 +4,4 @@ tqdm>=4.66.0
 torchvision>=0.21
 Pillow>=11.1.0
 tensorboard>=2.0.0
+lpips
