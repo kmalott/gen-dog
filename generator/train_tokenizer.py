@@ -63,6 +63,7 @@ def train(exp_dir: str = "logs",
         val_loss = torch.tensor([0.0])
 
         for img, label in tqdm(train_data):
+            # img = img.float() / 255.0 - 0.5
             img, label = img.to(device), label.to(device)
             img_hat = model(img)
             loss_val = mse_loss(img_hat, img)
