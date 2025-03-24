@@ -92,7 +92,7 @@ def train(exp_dir: str = "logs",
                 loss_val = mse_loss(img_hat, img)
                 lpips_val = lpips_loss(img_hat, img)
                 val_loss += loss_val.item()
-                val_lpips += lpips_val.item()
+                val_lpips += lpips_val.sum().item()
             metrics["val_loss"].append(val_loss)
             metrics["val_lpips"].append(val_lpips)
 
