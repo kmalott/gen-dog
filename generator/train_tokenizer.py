@@ -38,9 +38,9 @@ def train(exp_dir: str = "logs",
     model.train()
 
     # load data loaders
-    train_data, val_data = load_data_loader()
+    # train_data, val_data = load_data_loader()
     # alternatively run: (if dataloaders haven't been made yet)
-    # train_data, val_data = load_data('./rawdata/Images/', batch_size=batch_size)
+    train_data, val_data = load_data('./rawdata/Images/', batch_size=batch_size)
 
     # create loss functions and optimizer
     mse_loss = torch.nn.MSELoss()
