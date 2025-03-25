@@ -13,4 +13,4 @@ class Discriminator(torch.nn.Module):
         self.model = torch.nn.Sequential(*layers)
 
     def forward(self, x):
-        return self.model(x)
+        return self.model(x).squeeze(2,3)
