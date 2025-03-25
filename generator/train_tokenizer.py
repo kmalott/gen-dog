@@ -89,6 +89,7 @@ def train(exp_dir: str = "logs",
             img, label = img.to(device), label.to(device)
             # train discriminator
             img_hat = tokenizer(img)
+            print(img_hat.shape)
             bce_fake = bce_loss(discriminator(img_hat.detach()), torch.zeros((batch_size, 1), device=device))
             bce_real = bce_loss(discriminator(img), torch.ones((batch_size, 1), device=device))
             total_loss_d = bce_fake + bce_real
