@@ -89,15 +89,15 @@ def train(exp_dir: str = "logs",
             img, label = img.to(device), label.to(device)
             # train discriminator
             img_hat = tokenizer(img)
-            bce_fake = bce_loss(discriminator(img_hat.detach()), torch.zeros((batch_size, 1)))
-            bce_real = bce_loss(discriminator(img), torch.ones((batch_size, 1)))
+            bce_fake = bce_loss(discriminator(img_hat.detach()), torch.zeros((batch_size, 1), device=device))
+            bce_real = bce_loss(discriminator(img), torch.ones((batch_size, 1), device=device))
             total_loss_d = bce_fake + bce_real
             optimizer_d.zero_grad()
             total_loss_d.backward()
             optimizer_d.step()
 
             # train tokenizer (generator)
-            bce = bce_loss(discriminator(img_hat), torch.ones((batch_size, 1)))
+            bce = bce_loss(discriminator(img_hat), torch.ones((batch_size, 1), device=device))
             mse = mse_loss(img_hat, img)
             lpips = lpips_loss(img_hat, img)
             total_loss_t = mse + bce + (0.001*lpips.sum())
@@ -128,12 +128,12 @@ def train(exp_dir: str = "logs",
                 img, label = img.to(device), label.to(device)
                 # validate discriminator
                 img_hat = tokenizer(img)
-                bce_fake = bce_loss(discriminator(img_hat.detach()), torch.zeros((batch_size, 1)))
-                bce_real = bce_loss(discriminator(img), torch.ones((batch_size, 1)))
+                bce_fake = bce_loss(discriminator(img_hat.detach()), torch.zeros((batch_size, 1), device=device))
+                bce_real = bce_loss(discriminator(img), torch.ones((batch_size, 1), device=device))
                 total_loss_d = bce_fake + bce_real
 
                 # validate tokenizer (generator)
-                bce = bce_loss(discriminator(img_hat), torch.ones((batch_size, 1)))
+                bce = bce_loss(discriminator(img_hat), torch.ones((batch_size, 1), device=device))
                 mse = mse_loss(img_hat, img)
                 lpips = lpips_loss(img_hat, img)
                 total_loss_t = mse + bce + (0.001*lpips.sum())
