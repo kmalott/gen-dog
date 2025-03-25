@@ -10,6 +10,7 @@ import torchvision
 import lpips
 
 from .tokenizer import BSQTokenizer
+from .discriminator import Discriminator
 from .data import load_data_loader, load_data
 
 def train(exp_dir: str = "logs",
@@ -33,10 +34,12 @@ def train(exp_dir: str = "logs",
     log_dir = Path(exp_dir) / f"{model_name}_{datetime.now().strftime('%m%d_%H%M%S')}"
     logger = tb.SummaryWriter(log_dir)
 
-    # model = load_model(model_name, **kwargs)
-    model = BSQTokenizer(patch_size=2, latent_dim=128, codebook=10)
-    model = model.to(device)
-    model.train()
+    tokenizer = BSQTokenizer(patch_size=2, latent_dim=128, codebook=10)
+    tokenizer = tokenizer.to(device)
+    tokenizer.train()
+    discriminator = Discriminator()
+    discriminator = discriminator.to(device)
+    discriminator.train()
 
     # load data loaders
     # train_data, val_data = load_data_loader()
@@ -46,14 +49,19 @@ def train(exp_dir: str = "logs",
     # create loss functions and optimizer
     mse_loss = torch.nn.MSELoss()
     lpips_loss = lpips.LPIPS(net='vgg')
-    # gan_loss = ...
-    # entropy_loss = ...
-    optimizer = torch.optim.AdamW(params=model.parameters(), lr=lr)
-
     lpips_loss.to(device)
+    d_loss = torch.nn.BCEWithLogitsLoss()
+    # entropy_loss = ...
+    optimizer_t = torch.optim.AdamW(params=tokenizer.parameters(), lr=lr)
+    optimizer_d = torch.optim.AdamW(params=discriminator.parameters(), lr=lr)
+
 
     global_step = 0
-    metrics = {"train_loss": [], "val_loss": [], "train_lpips": [], "val_lpips": []}
+    metrics = {"train_loss": [], "val_loss": [], 
+               "train_bce": [], "val_bce": [], 
+               "train_mse": [], "val_mse": [], 
+               "train_lpips": [], "val_lpips": []
+               }
 
     # training loop
     for epoch in range(num_epoch):
@@ -61,41 +69,77 @@ def train(exp_dir: str = "logs",
         for key in metrics:
             metrics[key].clear()
 
-        model.train()
+        tokenizer.train()
+        discriminator.train()
+
         train_loss = torch.tensor([0.0])
         val_loss = torch.tensor([0.0])
+        train_bce = torch.tensor([0.0])
+        val_bce = torch.tensor([0.0])
+
+        train_mse = torch.tensor([0.0])
+        val_mse = torch.tensor([0.0])
         train_lpips = torch.tensor([0.0])
         val_lpips = torch.tensor([0.0])
 
         for img, label in tqdm(train_data):
             # img = img.float() / 255.0 - 0.5
             img, label = img.to(device), label.to(device)
-            img_hat = model(img)
-            loss_val = mse_loss(img_hat, img)
-            lpips_val = lpips_loss(img_hat, img)
-            train_loss += loss_val.item()
-            train_lpips += lpips_val.sum().item()
-            total_loss = loss_val + (0.001*lpips_val.sum())
-            optimizer.zero_grad()
-            total_loss.backward()
-            optimizer.step()
+            # train discriminator
+            img_hat = tokenizer(img)
+            bce_fake = d_loss(discriminator(img_hat), torch.zeros((batch_size, 1)))
+            bce_real = d_loss(discriminator(img), torch.ones((batch_size, 1)))
+            total_loss_d = bce_fake + bce_real
+            optimizer_d.zero_grad()
+            total_loss_d.backward()
+            optimizer_d.step()
+
+            # train tokenizer (generator)
+            mse = mse_loss(img_hat, img)
+            lpips = lpips_loss(img_hat, img)
+            total_loss_t = mse + (0.001*lpips.sum())
+            optimizer_t.zero_grad()
+            total_loss_t.backward()
+            optimizer_t.step()
+
+            # store losses
+            train_bce += total_loss_d.item()
+            train_loss += total_loss_t.item()
+            train_mse += mse.item()
+            train_lpips += lpips.sum().item()
             global_step += 1
         metrics["train_loss"].append(train_loss)
+        metrics["train_bce"].append(train_bce)
         metrics["train_lpips"].append(train_lpips)
+        metrics["train_mse"].append(train_mse)
 
         # disable gradient computation and switch to evaluation mode
         with torch.inference_mode():
-            model.eval()
+            tokenizer.eval()
+            discriminator.eval()
 
             for img, label in tqdm(val_data):
                 img, label = img.to(device), label.to(device)
-                img_hat = model(img)
-                loss_val = mse_loss(img_hat, img)
-                lpips_val = lpips_loss(img_hat, img)
-                val_loss += loss_val.item()
-                val_lpips += lpips_val.sum().item()
+                # validate discriminator
+                img_hat = tokenizer(img)
+                bce_fake = d_loss(discriminator(img_hat), torch.zeros((batch_size, 1)))
+                bce_real = d_loss(discriminator(img), torch.ones((batch_size, 1)))
+                total_loss_d = bce_fake + bce_real
+
+                # validate tokenizer (generator)
+                mse = mse_loss(img_hat, img)
+                lpips = lpips_loss(img_hat, img)
+                total_loss_t = mse + (0.001*lpips.sum())
+                
+                # store losses
+                val_bce += total_loss_d.item()
+                val_loss += total_loss_t.item()
+                val_mse += mse.item()
+                val_lpips += lpips.sum().item()
             metrics["val_loss"].append(val_loss)
+            metrics["val_bce"].append(val_bce)
             metrics["val_lpips"].append(val_lpips)
+            metrics["val_mse"].append(val_mse)
 
         # log average train and val accuracy to tensorboard
         epoch_train_loss = torch.as_tensor(metrics["train_loss"])
@@ -112,17 +156,21 @@ def train(exp_dir: str = "logs",
         # print on first, last, every 10th epoch
         #if epoch == 0 or epoch == num_epoch - 1 or (epoch + 1) % 10 == 0:
         print(
-            f"Epoch {epoch + 1:2d} / {num_epoch:2d}: "
-            f"train_loss={epoch_train_loss} "
-            f"val_loss={epoch_val_loss} "
-            f"train_lpips={train_lpips} "
-            f"val_lpips={val_lpips} "
+            f"Epoch {epoch + 1:2d} / {num_epoch:2d}: \n"
+            f"train_loss={epoch_train_loss} \n"
+            f"val_loss={epoch_val_loss} \n"
+            f"train_mse={train_mse} \n"
+            f"val_mse={val_mse} \n"
+            f"train_lpips={train_lpips} \n"
+            f"val_lpips={val_lpips} \n"
+            f"train_bce={train_bce} \n"
+            f"val_bce={val_bce} \n"
+            
         )
 
     # save a copy of model weights in the log directory
-    torch.save(model.state_dict(), log_dir / f"{model_name}.th")
+    torch.save(tokenizer.state_dict(), log_dir / f"{model_name}.th")
     print(f"Model saved to {log_dir / f'{model_name}.th'}")
-
 
 
 if __name__ == "__main__":
