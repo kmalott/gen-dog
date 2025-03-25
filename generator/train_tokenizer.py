@@ -119,6 +119,7 @@ def train(exp_dir: str = "logs",
             discriminator.eval()
 
             for img, label in tqdm(val_data):
+                # img = img.float() / 255.0 - 0.5
                 img, label = img.to(device), label.to(device)
                 # validate discriminator
                 img_hat = tokenizer(img)
