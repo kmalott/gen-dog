@@ -14,3 +14,18 @@ class Discriminator(torch.nn.Module):
 
     def forward(self, x):
         return self.model(x).squeeze(2,3)
+    
+def debug_model(batch_size: int = 32):
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    sample_batch = torch.rand(batch_size, 3, 128, 128).to(device)
+
+    print(f"Input shape: {sample_batch.shape}")
+
+    model = Discriminator()
+    output = model(sample_batch)
+
+    print(f"Output shape: {output.shape}")
+
+
+if __name__ == "__main__":
+    debug_model()
