@@ -7,7 +7,7 @@ import torch
 import torch.utils.tensorboard as tb
 from tqdm import tqdm
 import torchvision
-import lpips
+from lpips import LPIPS
 
 from .tokenizer import BSQTokenizer
 from .discriminator import Discriminator
@@ -48,9 +48,9 @@ def train(exp_dir: str = "logs",
 
     # create loss functions and optimizer
     mse_loss = torch.nn.MSELoss()
-    lpips_loss = lpips.LPIPS(net='vgg')
+    lpips_loss = LPIPS(net='vgg')
     lpips_loss.to(device)
-    d_loss = torch.nn.BCEWithLogitsLoss()
+    bce_loss = torch.nn.BCEWithLogitsLoss()
     # entropy_loss = ...
     optimizer_t = torch.optim.AdamW(params=tokenizer.parameters(), lr=lr)
     optimizer_d = torch.optim.AdamW(params=discriminator.parameters(), lr=lr)
@@ -60,7 +60,8 @@ def train(exp_dir: str = "logs",
     metrics = {"train_loss": [], "val_loss": [], 
                "train_bce": [], "val_bce": [], 
                "train_mse": [], "val_mse": [], 
-               "train_lpips": [], "val_lpips": []
+               "train_lpips": [], "val_lpips": [],
+               "train_disc": [], "val_disc": []
                }
 
     # training loop
@@ -76,42 +77,46 @@ def train(exp_dir: str = "logs",
         val_loss = torch.tensor([0.0])
         train_bce = torch.tensor([0.0])
         val_bce = torch.tensor([0.0])
-
         train_mse = torch.tensor([0.0])
         val_mse = torch.tensor([0.0])
         train_lpips = torch.tensor([0.0])
         val_lpips = torch.tensor([0.0])
+        train_disc = torch.tensor([0.0])
+        val_disc = torch.tensor([0.0])
 
         for img, label in tqdm(train_data):
             # img = img.float() / 255.0 - 0.5
             img, label = img.to(device), label.to(device)
             # train discriminator
             img_hat = tokenizer(img)
-            bce_fake = d_loss(discriminator(img_hat), torch.zeros((batch_size, 1)))
-            bce_real = d_loss(discriminator(img), torch.ones((batch_size, 1)))
+            bce_fake = bce_loss(discriminator(img_hat.detach()), torch.zeros((batch_size, 1)))
+            bce_real = bce_loss(discriminator(img), torch.ones((batch_size, 1)))
             total_loss_d = bce_fake + bce_real
             optimizer_d.zero_grad()
             total_loss_d.backward()
             optimizer_d.step()
 
             # train tokenizer (generator)
+            bce = bce_loss(discriminator(img_hat), torch.ones((batch_size, 1)))
             mse = mse_loss(img_hat, img)
             lpips = lpips_loss(img_hat, img)
-            total_loss_t = mse + (0.001*lpips.sum())
+            total_loss_t = mse + bce + (0.001*lpips.sum())
             optimizer_t.zero_grad()
             total_loss_t.backward()
             optimizer_t.step()
 
             # store losses
-            train_bce += total_loss_d.item()
             train_loss += total_loss_t.item()
+            train_bce += bce.item()
             train_mse += mse.item()
             train_lpips += lpips.sum().item()
+            train_disc += total_loss_d.item()
             global_step += 1
         metrics["train_loss"].append(train_loss)
         metrics["train_bce"].append(train_bce)
         metrics["train_lpips"].append(train_lpips)
         metrics["train_mse"].append(train_mse)
+        metrics["train_disc"].append(train_disc)
 
         # disable gradient computation and switch to evaluation mode
         with torch.inference_mode():
@@ -123,24 +128,27 @@ def train(exp_dir: str = "logs",
                 img, label = img.to(device), label.to(device)
                 # validate discriminator
                 img_hat = tokenizer(img)
-                bce_fake = d_loss(discriminator(img_hat), torch.zeros((batch_size, 1)))
-                bce_real = d_loss(discriminator(img), torch.ones((batch_size, 1)))
+                bce_fake = bce_loss(discriminator(img_hat.detach()), torch.zeros((batch_size, 1)))
+                bce_real = bce_loss(discriminator(img), torch.ones((batch_size, 1)))
                 total_loss_d = bce_fake + bce_real
 
                 # validate tokenizer (generator)
+                bce = bce_loss(discriminator(img_hat), torch.ones((batch_size, 1)))
                 mse = mse_loss(img_hat, img)
                 lpips = lpips_loss(img_hat, img)
-                total_loss_t = mse + (0.001*lpips.sum())
+                total_loss_t = mse + bce + (0.001*lpips.sum())
                 
                 # store losses
-                val_bce += total_loss_d.item()
                 val_loss += total_loss_t.item()
+                val_bce += bce.item()
                 val_mse += mse.item()
                 val_lpips += lpips.sum().item()
+                val_disc += total_loss_d.item()
             metrics["val_loss"].append(val_loss)
             metrics["val_bce"].append(val_bce)
             metrics["val_lpips"].append(val_lpips)
             metrics["val_mse"].append(val_mse)
+            metrics["val_disc"].append(val_disc)
 
         # log average train and val accuracy to tensorboard
         epoch_train_loss = torch.as_tensor(metrics["train_loss"])
@@ -166,7 +174,8 @@ def train(exp_dir: str = "logs",
             f"val_lpips={val_lpips} \n"
             f"train_bce={train_bce} \n"
             f"val_bce={val_bce} \n"
-            
+            f"train_disc={train_disc} \n"
+            f"val_disc={val_disc} \n"
         )
 
     # save a copy of model weights in the log directory
