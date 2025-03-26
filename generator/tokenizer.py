@@ -13,6 +13,47 @@ def chw_to_hwc(x: torch.Tensor) -> torch.Tensor:
     dims = dims[:-3] + [dims[-2]] + [dims[-1]] + [dims[-3]]
     return x.permute(*dims)
 
+class ResBlock(torch.nn.Module):
+    def __init__(self, c):
+        layers = []
+        layers.append(torch.nn.Conv2d(c, c, kernel_size=3, stride=1, padding=1))
+        layers.append(torch.nn.BatchNorm2d(c))
+        layers.append(torch.nn.ReLU())
+        layers.append(torch.nn.Conv2d(c, c, kernel_size=3, stride=1, padding=1))
+        layers.append(torch.nn.BatchNorm2d(c))
+        layers.append(torch.nn.ReLU())
+        self.model = torch.nn.Sequential(*layers)
+
+    def forward(self, x):
+        return self.model(x) + x
+
+class DownBlock(torch.nn.Module):
+    def __init__(self, in_c, out_c):
+        layers = []
+        layers.append(torch.nn.Conv2d(in_c, out_c, kernel_size=3, stride=2, padding=1))
+        layers.append(torch.nn.BatchNorm2d(out_c))
+        layers.append(torch.nn.ReLU())
+        layers.append(torch.nn.Conv2d(out_c, out_c, kernel_size=3, stride=1, padding=1))
+        layers.append(torch.nn.BatchNorm2d(out_c))
+        layers.append(torch.nn.ReLU())
+        self.model = torch.nn.Sequential(*layers)
+
+    def forward(self, x):
+        return self.model(x)
+    
+class UpBlock(torch.nn.Module):
+    def __init__(self, in_c, out_c):
+        layers = []
+        layers.append(torch.nn.ConvTranspose2d(in_c, out_c, kernel_size=3, stride=2, padding=1))
+        layers.append(torch.nn.BatchNorm2d(out_c))
+        layers.append(torch.nn.ReLU())
+        layers.append(torch.nn.Conv2d(out_c, out_c, kernel_size=3, stride=1, padding=1))
+        layers.append(torch.nn.BatchNorm2d(out_c))
+        layers.append(torch.nn.ReLU())
+        self.model = torch.nn.Sequential(*layers)
+
+    def forward(self, x):
+        return self.model(x)
 
 class BSQTokenizer(torch.nn.Module):
     class Encoder(torch.nn.Module):
