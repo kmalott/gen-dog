@@ -100,7 +100,8 @@ def train(exp_dir: str = "logs",
             bce = bce_loss(discriminator(img_hat), torch.ones((img.shape[0], 1), device=device))
             mse = mse_loss(img_hat, img)
             lpips = lpips_loss(img_hat, img)
-            total_loss_t = mse + (0.01*bce) + (0.001*lpips.sum())
+            # total_loss_t = mse + (0.01*bce) + (0.001*lpips.sum())
+            total_loss_t = lpips.sum()
             optimizer_t.zero_grad()
             total_loss_t.backward()
             optimizer_t.step()
@@ -136,7 +137,8 @@ def train(exp_dir: str = "logs",
                 bce = bce_loss(discriminator(img_hat), torch.ones((img.shape[0], 1), device=device))
                 mse = mse_loss(img_hat, img)
                 lpips = lpips_loss(img_hat, img)
-                total_loss_t = mse + (0.01*bce) + (0.001*lpips.sum())
+                # total_loss_t = mse + (0.01*bce) + (0.001*lpips.sum())
+                total_loss_t = lpips.sum()
                 
                 # store losses
                 val_loss += total_loss_t.item()
