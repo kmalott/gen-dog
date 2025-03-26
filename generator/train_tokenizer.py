@@ -89,15 +89,15 @@ def train(exp_dir: str = "logs",
             img, label = img.to(device), label.to(device)
             # train discriminator
             img_hat = tokenizer(img)
-            bce_fake = bce_loss(discriminator(img_hat.detach()), torch.zeros((img.shape[0], 1), device=device))
-            bce_real = bce_loss(discriminator(img), torch.ones((img.shape[0], 1), device=device))
-            total_loss_d = bce_fake + bce_real
-            optimizer_d.zero_grad()
-            total_loss_d.backward()
-            optimizer_d.step()
+            # bce_fake = bce_loss(discriminator(img_hat.detach()), torch.zeros((img.shape[0], 1), device=device))
+            # bce_real = bce_loss(discriminator(img), torch.ones((img.shape[0], 1), device=device))
+            # total_loss_d = bce_fake + bce_real
+            # optimizer_d.zero_grad()
+            # total_loss_d.backward()
+            # optimizer_d.step()
 
             # train tokenizer (generator)
-            bce = bce_loss(discriminator(img_hat), torch.ones((img.shape[0], 1), device=device))
+            # bce = bce_loss(discriminator(img_hat), torch.ones((img.shape[0], 1), device=device))
             mse = mse_loss(img_hat, img)
             lpips = lpips_loss(img_hat, img)
             # total_loss_t = mse + (0.01*bce) + (0.001*lpips.sum())
@@ -108,10 +108,10 @@ def train(exp_dir: str = "logs",
 
             # store losses
             train_loss += total_loss_t.item()
-            train_bce += bce.item() * 0.01
+            # train_bce += bce.item() * 0.01
             train_mse += mse.item()
             train_lpips += lpips.sum().item() * 0.001
-            train_disc += total_loss_d.item()
+            # train_disc += total_loss_d.item()
             global_step += 1
         metrics["train_loss"].append(train_loss)
         metrics["train_bce"].append(train_bce)
@@ -129,12 +129,12 @@ def train(exp_dir: str = "logs",
                 img, label = img.to(device), label.to(device)
                 # validate discriminator
                 img_hat = tokenizer(img)
-                bce_fake = bce_loss(discriminator(img_hat.detach()), torch.zeros((img.shape[0], 1), device=device))
-                bce_real = bce_loss(discriminator(img), torch.ones((img.shape[0], 1), device=device))
-                total_loss_d = bce_fake + bce_real
+                # bce_fake = bce_loss(discriminator(img_hat.detach()), torch.zeros((img.shape[0], 1), device=device))
+                # bce_real = bce_loss(discriminator(img), torch.ones((img.shape[0], 1), device=device))
+                # total_loss_d = bce_fake + bce_real
 
                 # validate tokenizer (generator)
-                bce = bce_loss(discriminator(img_hat), torch.ones((img.shape[0], 1), device=device))
+                # bce = bce_loss(discriminator(img_hat), torch.ones((img.shape[0], 1), device=device))
                 mse = mse_loss(img_hat, img)
                 lpips = lpips_loss(img_hat, img)
                 # total_loss_t = mse + (0.01*bce) + (0.001*lpips.sum())
@@ -142,10 +142,10 @@ def train(exp_dir: str = "logs",
                 
                 # store losses
                 val_loss += total_loss_t.item()
-                val_bce += bce.item() * 0.01
+                # val_bce += bce.item() * 0.01
                 val_mse += mse.item()
                 val_lpips += lpips.sum().item() * 0.001
-                val_disc += total_loss_d.item()
+                # val_disc += total_loss_d.item()
             metrics["val_loss"].append(val_loss)
             metrics["val_bce"].append(val_bce)
             metrics["val_lpips"].append(val_lpips)
