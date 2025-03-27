@@ -19,14 +19,14 @@ class ResBlock(torch.nn.Module):
         layers = []
         layers.append(torch.nn.Conv2d(c, c, kernel_size=3, stride=1, padding=1, bias=False))
         layers.append(torch.nn.BatchNorm2d(c))
-        layers.append(torch.nn.ReLU())
+        layers.append(torch.nn.LeakyReLU(0.1))
         layers.append(torch.nn.Conv2d(c, c, kernel_size=3, stride=1, padding=1, bias=False))
         layers.append(torch.nn.BatchNorm2d(c))
-        layers.append(torch.nn.ReLU())
         self.model = torch.nn.Sequential(*layers)
+        self.lrelu = torch.nn.LeakyReLU(0.1)
 
     def forward(self, x):
-        return self.model(x) + x
+        return self.lrelu(self.model(x) + x)
 
 class DownBlock(torch.nn.Module):
     def __init__(self, in_c, out_c):
@@ -34,10 +34,10 @@ class DownBlock(torch.nn.Module):
         layers = []
         layers.append(torch.nn.Conv2d(in_c, out_c, kernel_size=3, stride=2, padding=1, bias=False))
         layers.append(torch.nn.BatchNorm2d(out_c))
-        layers.append(torch.nn.ReLU())
+        layers.append(torch.nn.LeakyReLU(0.1))
         layers.append(torch.nn.Conv2d(out_c, out_c, kernel_size=3, stride=1, padding=1, bias=False))
         layers.append(torch.nn.BatchNorm2d(out_c))
-        layers.append(torch.nn.ReLU())
+        layers.append(torch.nn.LeakyReLU(0.1))
         self.model = torch.nn.Sequential(*layers)
 
     def forward(self, x):
@@ -49,10 +49,10 @@ class UpBlock(torch.nn.Module):
         layers = []
         layers.append(torch.nn.ConvTranspose2d(in_c, out_c, kernel_size=3, stride=2, padding=1, output_padding=1, bias=False))
         layers.append(torch.nn.BatchNorm2d(out_c))
-        layers.append(torch.nn.ReLU())
+        layers.append(torch.nn.LeakyReLU(0.1))
         layers.append(torch.nn.Conv2d(out_c, out_c, kernel_size=3, stride=1, padding=1, bias=False))
         layers.append(torch.nn.BatchNorm2d(out_c))
-        layers.append(torch.nn.ReLU())
+        layers.append(torch.nn.LeakyReLU(0.1))
         self.model = torch.nn.Sequential(*layers)
 
     def forward(self, x):
@@ -66,7 +66,7 @@ class BSQTokenizer(torch.nn.Module):
             # first layer
             layers.append(torch.nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False))
             layers.append(torch.nn.BatchNorm2d(64))
-            layers.append(torch.nn.ReLU())
+            layers.append(torch.nn.LeakyReLU(0.1))
             # series of resBlock -> downBlock
             layers.append(ResBlock(64))
             layers.append(DownBlock(64, 128))
@@ -89,7 +89,7 @@ class BSQTokenizer(torch.nn.Module):
             # first layer
             layers.append(torch.nn.Conv2d(latent_dim, 256, kernel_size=3, stride=1, padding=1, bias=False))
             layers.append(torch.nn.BatchNorm2d(256))
-            layers.append(torch.nn.ReLU())
+            layers.append(torch.nn.LeakyReLU(0.1))
             # (repeated?) resBlock(s)
             layers.append(ResBlock(256))
             layers.append(ResBlock(256))
