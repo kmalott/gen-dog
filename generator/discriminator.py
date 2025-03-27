@@ -2,6 +2,7 @@ import torch
 
 class ResDownBlock(torch.nn.Module):
     def __init__(self, in_c, out_c):
+        super().__init__()
         layers = []
         layers.append(torch.nn.Conv2d(in_c, out_c, kernel_size=3, stride=2, padding=1))
         layers.append(torch.nn.BatchNorm2d(out_c))
@@ -11,8 +12,8 @@ class ResDownBlock(torch.nn.Module):
         layers.append(torch.nn.LeakyReLU(0.2))
         self.model = torch.nn.Sequential(*layers)
         res_layers = []
-        res_layers.append(torch.nn.AvgPool2d(kernel_size=2, stride=2))
-        res_layers.append(torch.nn.Conv2d(in_c, out_c, kernel_size=1, stride=2, padding=0))
+        res_layers.append(torch.nn.AvgPool2d(kernel_size=2, stride=2, padding=0))
+        res_layers.append(torch.nn.Conv2d(in_c, out_c, kernel_size=1, stride=1, padding=0))
         self.res = torch.nn.Sequential(*res_layers)
 
     def forward(self, x):
