@@ -77,7 +77,7 @@ class BSQTokenizer(torch.nn.Module):
             # layers.append(torch.nn.GELU())
             layers.append(torch.nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, stride=2, padding=1))
             layers.append(torch.nn.GELU())
-            layers.append(torch.nn.Conv2d(in_channels=128, out_channels=128, kernel_size=3, stride=1, padding=1))
+            layers.append(torch.nn.Conv2d(in_channels=128, out_channels=latent_dim, kernel_size=3, stride=1, padding=1))
             self.model = torch.nn.Sequential(*layers)
 
         def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -90,7 +90,7 @@ class BSQTokenizer(torch.nn.Module):
             # layers.append(torch.nn.ConvTranspose2d(latent_dim, latent_dim, patch_size, 1, (patch_size - 1)//2, bias=False))
             # layers.append(torch.nn.GELU())
             # layers.append(torch.nn.ConvTranspose2d(latent_dim, 3, patch_size, patch_size, bias=False, output_padding=0))
-            layers.append(torch.nn.ConvTranspose2d(in_channels=128, out_channels=64, kernel_size=3, stride=2, padding=1, output_padding=1))
+            layers.append(torch.nn.ConvTranspose2d(in_channels=latent_dim, out_channels=64, kernel_size=3, stride=2, padding=1, output_padding=1))
             layers.append(torch.nn.GELU())
             layers.append(torch.nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, stride=1, padding=1))
             layers.append(torch.nn.GELU())
