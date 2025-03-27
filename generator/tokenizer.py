@@ -68,18 +68,18 @@ class BSQTokenizer(torch.nn.Module):
             layers.append(torch.nn.BatchNorm2d(64))
             layers.append(torch.nn.LeakyReLU(0.1))
             # series of resBlock -> downBlock
-            layers.append(ResBlock(64))
+            # layers.append(ResBlock(64))
             layers.append(DownBlock(64, 128))
             layers.append(ResBlock(128))
             layers.append(DownBlock(128, 256))
             # (repeated?) resBlock(s)
-            layers.append(ResBlock(256))
+            # layers.append(ResBlock(256))
             # layers.append(ResBlock(256))
             # final layers
             layers.append(torch.nn.Conv2d(256, 128, kernel_size=1, stride=1, padding=0))
-            layers.append(torch.nn.BatchNorm2d(128))
-            layers.append(torch.nn.LeakyReLU(0.1))
-            layers.append(torch.nn.Conv2d(128, latent_dim, kernel_size=1, stride=1, padding=0))
+            # layers.append(torch.nn.BatchNorm2d(128))
+            # layers.append(torch.nn.LeakyReLU(0.1))
+            # layers.append(torch.nn.Conv2d(128, latent_dim, kernel_size=1, stride=1, padding=0))
             self.model = torch.nn.Sequential(*layers)
 
         def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -90,17 +90,17 @@ class BSQTokenizer(torch.nn.Module):
             super().__init__()
             layers = []
             # first layer
-            layers.append(torch.nn.Conv2d(latent_dim, 128, kernel_size=1, stride=1, padding=0))
-            layers.append(torch.nn.BatchNorm2d(128))
-            layers.append(torch.nn.LeakyReLU(0.1))
+            # layers.append(torch.nn.Conv2d(latent_dim, 128, kernel_size=1, stride=1, padding=0))
+            # layers.append(torch.nn.BatchNorm2d(128))
+            # layers.append(torch.nn.LeakyReLU(0.1))
             layers.append(torch.nn.Conv2d(128, 256, kernel_size=3, stride=1, padding=1, bias=False))
             layers.append(torch.nn.BatchNorm2d(256))
             layers.append(torch.nn.LeakyReLU(0.1))
             # (repeated?) resBlock(s)
-            layers.append(ResBlock(256))
+            # layers.append(ResBlock(256))
             # layers.append(ResBlock(256))
             # series of resBlock -> upBlock
-            layers.append(ResBlock(256))
+            # layers.append(ResBlock(256))
             layers.append(UpBlock(256, 128))
             layers.append(ResBlock(128))
             layers.append(UpBlock(128, 64))

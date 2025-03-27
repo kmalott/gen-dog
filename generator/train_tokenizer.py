@@ -34,7 +34,7 @@ def train(exp_dir: str = "logs",
     log_dir = Path(exp_dir) / f"{model_name}_{datetime.now().strftime('%m%d_%H%M%S')}"
     logger = tb.SummaryWriter(log_dir)
 
-    tokenizer = BSQTokenizer(patch_size=2, latent_dim=64, codebook=14)
+    tokenizer = BSQTokenizer(patch_size=2, latent_dim=128, codebook=14)
     tokenizer = tokenizer.to(device)
     tokenizer.train()
     discriminator = Discriminator()
