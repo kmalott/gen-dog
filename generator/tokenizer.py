@@ -145,9 +145,9 @@ class BSQTokenizer(torch.nn.Module):
         self.codebook = codebook
 
     def forward(self, x: torch.Tensor):
-        # cnt = torch.bincount(self.encode_int(x).flatten(), minlength=2**14)
-        # return (self.decode(self.encode(x)), cnt)
-        return self.decode(self.encode(x))
+        cnt = torch.bincount(self.encode_int(x).flatten(), minlength=2**14)
+        return (self.decode(self.encode(x)), cnt)
+        # return self.decode(self.encode(x))
     
     def diff_sign(self, x: torch.Tensor) -> torch.Tensor:
         sign = 2 * (x >= 0).float() - 1
