@@ -9,15 +9,15 @@ class ResDownBlock(torch.nn.Module):
         layers.append(torch.nn.LeakyReLU(0.2))
         layers.append(torch.nn.Conv2d(out_c, out_c, kernel_size=3, stride=1, padding=1))
         layers.append(torch.nn.BatchNorm2d(out_c))
-        layers.append(torch.nn.LeakyReLU(0.2))
         self.model = torch.nn.Sequential(*layers)
         res_layers = []
         res_layers.append(torch.nn.AvgPool2d(kernel_size=2, stride=2, padding=0))
         res_layers.append(torch.nn.Conv2d(in_c, out_c, kernel_size=1, stride=1, padding=0))
         self.res = torch.nn.Sequential(*res_layers)
+        self.lrelu = torch.nn.LeakyReLU(0.2)
 
     def forward(self, x):
-        return self.model(x) + self.res(x)
+        return self.lrelu(self.model(x) + self.res(x))
 
 class Discriminator(torch.nn.Module):
     def __init__(self):
