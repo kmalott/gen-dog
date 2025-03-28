@@ -83,12 +83,12 @@ def train(exp_dir: str = "logs",
         val_lpips = torch.tensor([0.0])
         train_disc = torch.tensor([0.0])
         val_disc = torch.tensor([0.0])
-
+        i = 0
         for img, label in tqdm(train_data):
             # img = img.float() / 255.0 - 0.5
             img, label = img.to(device), label.to(device)
             # train discriminator
-            img_hat = tokenizer(img)
+            img_hat, cnt = tokenizer(img)
             # bce_fake = bce_loss(discriminator(img_hat.detach()), torch.zeros((img.shape[0], 1), device=device))
             # bce_real = bce_loss(discriminator(img), torch.ones((img.shape[0], 1), device=device))
             # total_loss_d = bce_fake + bce_real
@@ -113,6 +113,14 @@ def train(exp_dir: str = "logs",
             train_lpips += lpips.sum().item() * 0.001
             # train_disc += total_loss_d.item()
             global_step += 1
+            i += 1
+            if i % 100 == 0 and epoch == num_epoch - 1:
+                print((cnt == 0).float().mean().detach())
+                print((cnt <= 2).float().mean().detach())
+                print(cnt.min())
+                print(cnt.max())
+                print(cnt.sum())
+                print(cnt.shape)
         metrics["train_loss"].append(train_loss)
         metrics["train_bce"].append(train_bce)
         metrics["train_lpips"].append(train_lpips)
@@ -128,7 +136,7 @@ def train(exp_dir: str = "logs",
                 # img = img.float() / 255.0 - 0.5
                 img, label = img.to(device), label.to(device)
                 # validate discriminator
-                img_hat = tokenizer(img)
+                img_hat, cnt = tokenizer(img)
                 # bce_fake = bce_loss(discriminator(img_hat.detach()), torch.zeros((img.shape[0], 1), device=device))
                 # bce_real = bce_loss(discriminator(img), torch.ones((img.shape[0], 1), device=device))
                 # total_loss_d = bce_fake + bce_real
