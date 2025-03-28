@@ -58,11 +58,11 @@ class ResUpBlock(torch.nn.Module):
         layers.append(torch.nn.BatchNorm2d(out_c))
         self.model = torch.nn.Sequential(*layers)
         res_layers = []
-        # option 1
-        # res_layers.append(torch.nn.ConvTranspose2d(in_c, out_c, kernel_size=1, stride=2, padding=0, output_padding=1, bias=False))
-        # option 2
-        res_layers.append(torch.nn.Upsample(scale_factor=2, mode='bicubic'))
-        res_layers.append(torch.nn.Conv2d(in_c, out_c, kernel_size=1, stride=1, padding=0, bias=False))
+        # option 1 (conv)
+        res_layers.append(torch.nn.ConvTranspose2d(in_c, out_c, kernel_size=1, stride=2, padding=0, output_padding=1, bias=False))
+        # option 2 (interpolation)
+        # res_layers.append(torch.nn.Upsample(scale_factor=2, mode='bicubic'))
+        # res_layers.append(torch.nn.Conv2d(in_c, out_c, kernel_size=1, stride=1, padding=0, bias=False))
         self.res = torch.nn.Sequential(*res_layers)
         self.lrelu = torch.nn.LeakyReLU(0.1)
 
@@ -180,7 +180,7 @@ def debug_model(batch_size: int = 1):
     print(f"Input shape: {sample_batch.shape}")
 
     model = BSQTokenizer(2, 128, 20)
-    output = model(sample_batch)
+    output, cnt = model(sample_batch)
 
     print(f"Output shape: {output.shape}")
 
