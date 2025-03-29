@@ -14,6 +14,8 @@ from .discriminator import Discriminator
 from .data import load_data_loader, load_data
 
 def calc_gradient_penalty(netD, real_data, fake_data, batch_size, device):
+    real_data.to(device)
+    fake_data.to(device)
     alpha = torch.rand(batch_size, 1, 1, 1)
     alpha.to(device)
     interpolates = alpha * real_data + ((1 - alpha) * fake_data)
