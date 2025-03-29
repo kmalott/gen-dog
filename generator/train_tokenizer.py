@@ -7,7 +7,7 @@ import torch
 import torch.utils.tensorboard as tb
 from tqdm import tqdm
 import torchvision
-from lpips import LPIPS
+# from lpips import LPIPS
 
 from .tokenizer import BSQTokenizer
 from .discriminator import Discriminator
