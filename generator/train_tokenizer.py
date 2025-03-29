@@ -13,8 +13,8 @@ from .tokenizer import BSQTokenizer
 from .discriminator import Discriminator
 from .data import load_data_loader, load_data
 
-def calc_gradient_penalty(netD, real_data, fake_data, batch_size, device):
-    alpha = torch.rand(batch_size, 1, 1, 1)
+def calc_gradient_penalty(netD, real_data, fake_data, device):
+    alpha = torch.rand(real_data.shape[0], 1, 1, 1)
     alpha = alpha.to(device)
     interpolates = alpha * real_data + ((1 - alpha) * fake_data)
     interpolates.to(device)
@@ -106,7 +106,7 @@ def train(exp_dir: str = "logs",
             # total_loss_d = bce_fake + bce_real
             gan_fake = discriminator(img_hat).mean()
             gan_real = discriminator(img).mean()
-            gp = calc_gradient_penalty(discriminator, img, img_hat, batch_size, device)
+            gp = calc_gradient_penalty(discriminator, img, img_hat, device)
             total_loss_d = gan_fake - gan_real + (10*gp) 
             optimizer_d.zero_grad()
             total_loss_d.backward()
@@ -124,11 +124,11 @@ def train(exp_dir: str = "logs",
                 optimizer_t.zero_grad()
                 total_loss_t.backward()
                 optimizer_t.step()
+                train_loss += total_loss_t.item()
+                train_mse += mse.item()
 
             # store losses
-            train_loss += total_loss_t.item()
             # train_bce += bce.item() * 0.01
-            train_mse += mse.item()
             # train_lpips += lpips.sum().item() * 0.001
             train_disc += total_loss_d.item()
             global_step += 1
