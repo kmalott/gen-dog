@@ -36,13 +36,29 @@ class Discriminator(torch.nn.Module):
     def forward(self, x):
         return self.model(x).squeeze(2,3)
     
+class DiscriminatorV2(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        layers = []
+        layers.append(torch.nn.Conv2d(3, 64, kernel_size=3, stride=2, padding=1, bias=False))
+        layers.append(torch.nn.BatchNorm2d(64))
+        layers.append(torch.nn.LeakyReLU(0.2))
+        layers.append(ResDownBlock(64, 128))
+        layers.append(ResDownBlock(128, 256))
+        layers.append(torch.nn.Conv2d(256, 1, kernel_size=3, stride=2, padding=1))
+        layers.append(torch.nn.AdaptiveAvgPool2d(1))
+        self.model = torch.nn.Sequential(*layers)
+
+    def forward(self, x):
+        return self.model(x).squeeze(2,3)
+    
 def debug_model(batch_size: int = 32):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     sample_batch = torch.rand(batch_size, 3, 128, 128).to(device)
 
     print(f"Input shape: {sample_batch.shape}")
 
-    model = Discriminator()
+    model = DiscriminatorV2()
     output = model(sample_batch)
 
     print(f"Output shape: {output.shape}")
