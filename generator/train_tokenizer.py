@@ -14,10 +14,8 @@ from .discriminator import Discriminator
 from .data import load_data_loader, load_data
 
 def calc_gradient_penalty(netD, real_data, fake_data, batch_size, device):
-    real_data.to(device)
-    fake_data.to(device)
     alpha = torch.rand(batch_size, 1, 1, 1)
-    alpha.to(device)
+    alpha = alpha.to(device)
     interpolates = alpha * real_data + ((1 - alpha) * fake_data)
     interpolates.to(device)
     interpolates = torch.autograd.Variable(interpolates, requires_grad=True)
@@ -62,7 +60,7 @@ def train(exp_dir: str = "logs",
     # create loss functions and optimizer
     mse_loss = torch.nn.MSELoss()
     # lpips_loss = LPIPS(net='vgg')
-    # lpips_loss.to(device)
+    # lpips_loss = lpips_loss.to(device)
     # bce_loss = torch.nn.BCEWithLogitsLoss()
     # entropy_loss = ...
     optimizer_t = torch.optim.AdamW(params=tokenizer.parameters(), lr=lr)
