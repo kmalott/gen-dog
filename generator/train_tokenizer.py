@@ -13,6 +13,19 @@ from .tokenizer import BSQTokenizer
 from .discriminator import Discriminator
 from .data import load_data_loader, load_data
 
+def calc_gradient_penalty(netD, real_data, fake_data, batch_size, device):
+    alpha = torch.rand(batch_size, 1, 1, 1)
+    alpha.to(device)
+    interpolates = alpha * real_data + ((1 - alpha) * fake_data)
+    interpolates.to(device)
+    interpolates = torch.autograd.Variable(interpolates, requires_grad=True)
+    disc_interpolates = netD(interpolates)
+    gradients = torch.autograd.grad(outputs=disc_interpolates, inputs=interpolates,
+                              grad_outputs=torch.ones(disc_interpolates.size(), device=device),
+                              create_graph=True, retain_graph=True, only_inputs=True)[0]
+    gradient_penalty = ((gradients.norm(2, dim=1) - 1) ** 2).mean()
+    return gradient_penalty
+
 def train(exp_dir: str = "logs",
     model_name: str = "BSQTokenizer",
     num_epoch: int = 5,
@@ -36,10 +49,8 @@ def train(exp_dir: str = "logs",
 
     tokenizer = BSQTokenizer(patch_size=2, latent_dim=128, codebook=14)
     tokenizer = tokenizer.to(device)
-    tokenizer.train()
     discriminator = Discriminator()
     discriminator = discriminator.to(device)
-    discriminator.train()
 
     # load data loaders
     # train_data, val_data = load_data_loader()
@@ -48,9 +59,9 @@ def train(exp_dir: str = "logs",
 
     # create loss functions and optimizer
     mse_loss = torch.nn.MSELoss()
-    lpips_loss = LPIPS(net='vgg')
-    lpips_loss.to(device)
-    bce_loss = torch.nn.BCEWithLogitsLoss()
+    # lpips_loss = LPIPS(net='vgg')
+    # lpips_loss.to(device)
+    # bce_loss = torch.nn.BCEWithLogitsLoss()
     # entropy_loss = ...
     optimizer_t = torch.optim.AdamW(params=tokenizer.parameters(), lr=lr)
     optimizer_d = torch.optim.AdamW(params=discriminator.parameters(), lr=lr)
@@ -88,39 +99,47 @@ def train(exp_dir: str = "logs",
             # img = img.float() / 255.0 - 0.5
             img, label = img.to(device), label.to(device)
             # train discriminator
-            img_hat, cnt = tokenizer(img)
+            # img_hat, cnt = tokenizer(img)
+            img_hat = tokenizer(img).detach()
             # bce_fake = bce_loss(discriminator(img_hat.detach()), torch.zeros((img.shape[0], 1), device=device))
             # bce_real = bce_loss(discriminator(img), torch.ones((img.shape[0], 1), device=device))
             # total_loss_d = bce_fake + bce_real
-            # optimizer_d.zero_grad()
-            # total_loss_d.backward()
-            # optimizer_d.step()
+            gan_fake = discriminator(img_hat).mean()
+            gan_real = discriminator(img).mean()
+            gp = calc_gradient_penalty(discriminator, img, img_hat, batch_size, device)
+            total_loss_d = gan_fake - gan_real + (10*gp) 
+            optimizer_d.zero_grad()
+            total_loss_d.backward()
+            optimizer_d.step()
 
-            # train tokenizer (generator)
-            # bce = bce_loss(discriminator(img_hat), torch.ones((img.shape[0], 1), device=device))
-            mse = mse_loss(img_hat, img)
-            lpips = lpips_loss(img_hat, img)
-            # total_loss_t = mse + (0.01*bce) + (0.001*lpips.sum())
-            total_loss_t = lpips.sum()
-            optimizer_t.zero_grad()
-            total_loss_t.backward()
-            optimizer_t.step()
+            if i % 5 ==0:
+                # train tokenizer (generator)
+                img_hat = tokenizer(img)
+                # bce = bce_loss(discriminator(img_hat), torch.ones((img.shape[0], 1), device=device))
+                mse = mse_loss(img_hat, img)
+                # lpips = lpips_loss(img_hat, img)
+                # total_loss_t = mse + (0.01*bce) + (0.001*lpips.sum())
+                # total_loss_t = lpips.sum()
+                total_loss_t = mse - discriminator(img_hat).mean()
+                optimizer_t.zero_grad()
+                total_loss_t.backward()
+                optimizer_t.step()
 
             # store losses
             train_loss += total_loss_t.item()
             # train_bce += bce.item() * 0.01
             train_mse += mse.item()
-            train_lpips += lpips.sum().item() * 0.001
-            # train_disc += total_loss_d.item()
+            # train_lpips += lpips.sum().item() * 0.001
+            train_disc += total_loss_d.item()
             global_step += 1
             i += 1
-            if i % 100 == 0 and epoch == num_epoch - 1:
-                print((cnt == 0).float().mean().detach())
-                print((cnt <= 2).float().mean().detach())
-                print(cnt.min())
-                print(cnt.max())
-                print(cnt.sum())
-                print(cnt.shape)
+            # if i % 100 == 0 and epoch == num_epoch - 1:
+            #     print((cnt == 0).float().mean().detach())
+            #     print((cnt <= 2).float().mean().detach())
+            #     print(cnt.min())
+            #     print(cnt.max())
+            #     print(cnt.sum())
+            #     print(cnt.shape)
         metrics["train_loss"].append(train_loss)
         metrics["train_bce"].append(train_bce)
         metrics["train_lpips"].append(train_lpips)
@@ -136,24 +155,29 @@ def train(exp_dir: str = "logs",
                 # img = img.float() / 255.0 - 0.5
                 img, label = img.to(device), label.to(device)
                 # validate discriminator
-                img_hat, cnt = tokenizer(img)
+                # img_hat, cnt = tokenizer(img)
+                img_hat = tokenizer(img)
                 # bce_fake = bce_loss(discriminator(img_hat.detach()), torch.zeros((img.shape[0], 1), device=device))
                 # bce_real = bce_loss(discriminator(img), torch.ones((img.shape[0], 1), device=device))
                 # total_loss_d = bce_fake + bce_real
+                gan_fake = discriminator(img_hat).mean()
+                gan_real = discriminator(img).mean()
+                total_loss_d = gan_fake - gan_real
 
                 # validate tokenizer (generator)
                 # bce = bce_loss(discriminator(img_hat), torch.ones((img.shape[0], 1), device=device))
                 mse = mse_loss(img_hat, img)
-                lpips = lpips_loss(img_hat, img)
+                # lpips = lpips_loss(img_hat, img)
                 # total_loss_t = mse + (0.01*bce) + (0.001*lpips.sum())
-                total_loss_t = lpips.sum()
+                # total_loss_t = lpips.sum()
+                total_loss_t = mse - gan_fake
                 
                 # store losses
                 val_loss += total_loss_t.item()
                 # val_bce += bce.item() * 0.01
                 val_mse += mse.item()
-                val_lpips += lpips.sum().item() * 0.001
-                # val_disc += total_loss_d.item()
+                # val_lpips += lpips.sum().item() * 0.001
+                val_disc += total_loss_d.item()
             metrics["val_loss"].append(val_loss)
             metrics["val_bce"].append(val_bce)
             metrics["val_lpips"].append(val_lpips)
