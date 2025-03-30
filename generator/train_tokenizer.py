@@ -96,9 +96,9 @@ def train(exp_dir: str = "logs",
         val_disc = torch.tensor([0.0])
         i = 0
         for img, label in tqdm(train_data):
+            img, label = img.to(device), label.to(device)
             if epoch > 1:
                 # img = img.float() / 255.0 - 0.5
-                img, label = img.to(device), label.to(device)
                 # train discriminator
                 # img_hat, cnt = tokenizer(img)
                 img_hat = tokenizer(img).detach()
