@@ -127,6 +127,7 @@ def train(exp_dir: str = "logs",
                     optimizer_t.step()
                     train_loss += total_loss_t.item()
                     train_mse += mse.item()
+                train_disc += total_loss_d.item()
             else:
                 img_hat = tokenizer(img)
                 mse = mse_loss(img_hat, img)
@@ -138,7 +139,7 @@ def train(exp_dir: str = "logs",
             # store losses
             # train_bce += bce.item() * 0.01
             # train_lpips += lpips.sum().item() * 0.001
-            train_disc += total_loss_d.item()
+           
             global_step += 1
             i += 1
             # if i % 100 == 0 and epoch == num_epoch - 1:
