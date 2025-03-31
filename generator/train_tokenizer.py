@@ -97,37 +97,38 @@ def train(exp_dir: str = "logs",
         i = 0
         for img, label in tqdm(train_data):
             img, label = img.to(device), label.to(device)
-            if epoch > 1:
-                # img = img.float() / 255.0 - 0.5
-                # train discriminator
-                # img_hat, cnt = tokenizer(img)
-                img_hat = tokenizer(img).detach()
-                # bce_fake = bce_loss(discriminator(img_hat.detach()), torch.zeros((img.shape[0], 1), device=device))
-                # bce_real = bce_loss(discriminator(img), torch.ones((img.shape[0], 1), device=device))
-                # total_loss_d = bce_fake + bce_real
-                gan_fake = discriminator(img_hat).mean()
-                gan_real = discriminator(img).mean()
-                total_loss_d = gan_fake - gan_real
-                optimizer_d.zero_grad()
-                total_loss_d.backward()
-                optimizer_d.step()
+            # if epoch > 1:
+            # img = img.float() / 255.0 - 0.5
+            # train discriminator
+            # img_hat, cnt = tokenizer(img)
+            img_hat = tokenizer(img).detach()
+            # bce_fake = bce_loss(discriminator(img_hat.detach()), torch.zeros((img.shape[0], 1), device=device))
+            # bce_real = bce_loss(discriminator(img), torch.ones((img.shape[0], 1), device=device))
+            # total_loss_d = bce_fake + bce_real
+            gan_fake = discriminator(img_hat).mean()
+            gan_real = discriminator(img).mean()
+            gp = calc_gradient_penalty(discriminator, img, img_hat, device)
+            total_loss_d = gan_fake - gan_real + (10*gp) 
+            optimizer_d.zero_grad()
+            total_loss_d.backward()
+            optimizer_d.step()
 
-                if i % 5 == 0:
-                    # train tokenizer (generator)
-                    img_hat = tokenizer(img)
-                    # bce = bce_loss(discriminator(img_hat), torch.ones((img.shape[0], 1), device=device))
-                    mse = mse_loss(img_hat, img)
-                    # lpips = lpips_loss(img_hat, img)
-                    # total_loss_t = mse + (0.01*bce) + (0.001*lpips.sum())
-                    # total_loss_t = lpips.sum()
-                    # total_loss_t = mse - (0.001*discriminator(img_hat).mean())
-                    total_loss_t = mse
-                    optimizer_t.zero_grad()
-                    total_loss_t.backward()
-                    optimizer_t.step()
-                    train_loss += total_loss_t.item()
-                    train_mse += mse.item()
-                train_disc += total_loss_d.item()
+            if i % 5 == 0:
+                # train tokenizer (generator)
+                img_hat = tokenizer(img)
+                # bce = bce_loss(discriminator(img_hat), torch.ones((img.shape[0], 1), device=device))
+                mse = mse_loss(img_hat, img)
+                # lpips = lpips_loss(img_hat, img)
+                # total_loss_t = mse + (0.01*bce) + (0.001*lpips.sum())
+                # total_loss_t = lpips.sum()
+                # total_loss_t = mse - (0.001*discriminator(img_hat).mean())
+                total_loss_t = mse
+                optimizer_t.zero_grad()
+                total_loss_t.backward()
+                optimizer_t.step()
+                train_loss += total_loss_t.item()
+                train_mse += mse.item()
+            train_disc += total_loss_d.item()
             # else:
             #     img_hat = tokenizer(img)
             #     mse = mse_loss(img_hat, img)
@@ -171,8 +172,7 @@ def train(exp_dir: str = "logs",
                 # total_loss_d = bce_fake + bce_real
                 gan_fake = discriminator(img_hat).mean()
                 gan_real = discriminator(img).mean()
-                gp = calc_gradient_penalty(discriminator, img, img_hat, device)
-                total_loss_d = gan_fake - gan_real + (10*gp) 
+                total_loss_d = gan_fake - gan_real
 
                 # validate tokenizer (generator)
                 # bce = bce_loss(discriminator(img_hat), torch.ones((img.shape[0], 1), device=device))
