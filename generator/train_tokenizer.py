@@ -64,7 +64,7 @@ def train(exp_dir: str = "logs",
     # bce_loss = torch.nn.BCEWithLogitsLoss()
     # entropy_loss = ...
     optimizer_t = torch.optim.AdamW(params=tokenizer.parameters(), lr=lr)
-    optimizer_d = torch.optim.AdamW(params=discriminator.parameters(), lr=lr)
+    optimizer_d = torch.optim.AdamW(params=discriminator.parameters(), lr=0.0001)
 
 
     global_step = 0
@@ -74,6 +74,16 @@ def train(exp_dir: str = "logs",
                "train_lpips": [], "val_lpips": [],
                "train_disc": [], "val_disc": []
                }
+    
+    # warmup loop
+    tokenizer.train()
+    for img, label in tqdm(train_data):
+        img, label = img.to(device), label.to(device)
+        img_hat = tokenizer(img)
+        mse = mse_loss(img_hat, img)
+        optimizer_t.zero_grad()
+        mse.backward()
+        optimizer_t.step()
 
     # training loop
     for epoch in range(num_epoch):
@@ -94,6 +104,11 @@ def train(exp_dir: str = "logs",
         val_lpips = torch.tensor([0.0])
         train_disc = torch.tensor([0.0])
         val_disc = torch.tensor([0.0])
+
+        train_fake = torch.tensor([0.0])
+        train_real = torch.tensor([0.0])
+        train_gp = torch.tensor([0.0])
+
         i = 0
         for img, label in tqdm(train_data):
             img, label = img.to(device), label.to(device)
@@ -121,14 +136,16 @@ def train(exp_dir: str = "logs",
                 # lpips = lpips_loss(img_hat, img)
                 # total_loss_t = mse + (0.01*bce) + (0.001*lpips.sum())
                 # total_loss_t = lpips.sum()
-                # total_loss_t = mse - (0.001*discriminator(img_hat).mean())
-                total_loss_t = mse
+                total_loss_t = mse - (0.001*discriminator(img_hat).mean())
                 optimizer_t.zero_grad()
                 total_loss_t.backward()
                 optimizer_t.step()
                 train_loss += total_loss_t.item()
                 train_mse += mse.item()
             train_disc += total_loss_d.item()
+            train_fake += gan_fake.item()
+            train_real += gan_real.item()
+            train_gp += gp.item()
             # else:
             #     img_hat = tokenizer(img)
             #     mse = mse_loss(img_hat, img)
@@ -221,6 +238,11 @@ def train(exp_dir: str = "logs",
             f"val_bce={val_bce} \n"
             f"train_disc={train_disc} \n"
             f"val_disc={val_disc} \n"
+        )
+        print(
+            f"Real Img Loss: {train_real} \n"
+            f"Fake Img Loss: {train_fake} \n"
+            f"Gradient Penalty: {train_gp}"
         )
 
     # save a copy of model weights in the log directory
