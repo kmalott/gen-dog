@@ -24,12 +24,13 @@ class Discriminator(torch.nn.Module):
         super().__init__()
         layers = []
         layers.append(torch.nn.Conv2d(3, 64, kernel_size=4, stride=2, padding=1, bias=False))
-        layers.append(torch.nn.BatchNorm2d(64))
+        # layers.append(torch.nn.BatchNorm2d(64))
+        layers.append(torch.nn.LayerNorm((64, 64, 64)))
         layers.append(torch.nn.LeakyReLU(0.2))
-        layers.append(torch.nn.Conv2d(64, 128, kernel_size=4, stride=2, padding=1, bias=False))
-        layers.append(torch.nn.BatchNorm2d(128))
-        layers.append(torch.nn.LeakyReLU(0.2))
-        layers.append(torch.nn.Conv2d(128, 1, kernel_size=4, stride=2, padding=1))
+        # layers.append(torch.nn.Conv2d(64, 128, kernel_size=4, stride=2, padding=1, bias=False))
+        # layers.append(torch.nn.BatchNorm2d(128))
+        # layers.append(torch.nn.LeakyReLU(0.2))
+        layers.append(torch.nn.Conv2d(64, 1, kernel_size=4, stride=2, padding=1))
         layers.append(torch.nn.AdaptiveAvgPool2d(1))
         self.model = torch.nn.Sequential(*layers)
 
