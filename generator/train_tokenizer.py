@@ -64,7 +64,7 @@ def train(exp_dir: str = "logs",
     # bce_loss = torch.nn.BCEWithLogitsLoss()
     # entropy_loss = ...
     optimizer_t = torch.optim.AdamW(params=tokenizer.parameters(), lr=lr)
-    optimizer_d = torch.optim.AdamW(params=discriminator.parameters(), lr=0.0001)
+    optimizer_d = torch.optim.AdamW(params=discriminator.parameters(), lr=0.0001, betas=(0.0, 0.9))
 
 
     global_step = 0
@@ -111,9 +111,8 @@ def train(exp_dir: str = "logs",
 
         i = 0
         for img, label in tqdm(train_data):
+            img = img.float() / 255.0 - 0.5
             img, label = img.to(device), label.to(device)
-            # if epoch > 1:
-            # img = img.float() / 255.0 - 0.5
             # train discriminator
             # img_hat, cnt = tokenizer(img)
             img_hat = tokenizer(img).detach()
@@ -146,13 +145,6 @@ def train(exp_dir: str = "logs",
             train_fake += gan_fake.item()
             train_real += gan_real.item()
             train_gp += gp.item()
-            # else:
-            #     img_hat = tokenizer(img)
-            #     mse = mse_loss(img_hat, img)
-            #     total_loss_t = mse
-            #     optimizer_t.zero_grad()
-            #     total_loss_t.backward()
-            #     optimizer_t.step()
 
             # store losses
             # train_bce += bce.item() * 0.01
@@ -179,7 +171,7 @@ def train(exp_dir: str = "logs",
             discriminator.eval()
 
             for img, label in tqdm(val_data):
-                # img = img.float() / 255.0 - 0.5
+                img = img.float() / 255.0 - 0.5
                 img, label = img.to(device), label.to(device)
                 # validate discriminator
                 # img_hat, cnt = tokenizer(img)
