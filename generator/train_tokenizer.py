@@ -212,9 +212,9 @@ def train(exp_dir: str = "logs",
         logger.add_scalar('val_loss', epoch_val_loss, global_step)
 
         # add last of the reconstructed images to tensorboard
-        grid = torchvision.utils.make_grid(img)
+        grid = torchvision.utils.make_grid(img * 255)
         logger.add_image('images', grid, global_step)
-        grid = torchvision.utils.make_grid(img_hat)
+        grid = torchvision.utils.make_grid(img_hat * 255)
         logger.add_image('images_reconstructed', grid, global_step)
 
         # print on first, last, every 10th epoch
