@@ -78,6 +78,7 @@ def train(exp_dir: str = "logs",
     # warmup loop
     tokenizer.train()
     for img, label in tqdm(train_data):
+        img = img.float() / 255.0 - 0.5
         img, label = img.to(device), label.to(device)
         img_hat = tokenizer(img)
         mse = mse_loss(img_hat, img)
