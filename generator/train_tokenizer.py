@@ -107,8 +107,7 @@ def train(exp_dir: str = "logs",
                 # total_loss_d = bce_fake + bce_real
                 gan_fake = discriminator(img_hat).mean()
                 gan_real = discriminator(img).mean()
-                gp = calc_gradient_penalty(discriminator, img, img_hat, device)
-                total_loss_d = gan_fake - gan_real + (10*gp) 
+                total_loss_d = gan_fake - gan_real
                 optimizer_d.zero_grad()
                 total_loss_d.backward()
                 optimizer_d.step()
