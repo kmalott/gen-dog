@@ -7,7 +7,7 @@ import torch
 import torch.utils.tensorboard as tb
 from tqdm import tqdm
 import torchvision
-# from lpips import LPIPS
+from lpips import LPIPS
 
 from .tokenizer import BSQTokenizer
 from .discriminator import Discriminator
@@ -59,8 +59,8 @@ def train(exp_dir: str = "logs",
 
     # create loss functions and optimizer
     mse_loss = torch.nn.MSELoss()
-    # lpips_loss = LPIPS(net='vgg')
-    # lpips_loss = lpips_loss.to(device)
+    lpips_loss = LPIPS(net='vgg')
+    lpips_loss = lpips_loss.to(device)
     # bce_loss = torch.nn.BCEWithLogitsLoss()
     # entropy_loss = ...
     optimizer_t = torch.optim.AdamW(params=tokenizer.parameters(), lr=lr)
@@ -76,15 +76,24 @@ def train(exp_dir: str = "logs",
                }
     
     # warmup loop
-    tokenizer.train()
-    for img, label in tqdm(train_data):
-        img = img.float() / 255.0 - 0.5
-        img, label = img.to(device), label.to(device)
-        img_hat = tokenizer(img)
-        mse = mse_loss(img_hat, img)
-        optimizer_t.zero_grad()
-        mse.backward()
-        optimizer_t.step()
+    # tokenizer.train()
+    # for img, label in tqdm(train_data):
+    #     img = img.float() / 255.0 - 0.5
+    #     img, label = img.to(device), label.to(device)
+    #     img_hat = tokenizer(img)
+    #     mse = mse_loss(img_hat, img)
+    #     lpips = lpips_loss(img_hat, img)
+    #     total_loss_t = 5*mse + 0.1*lpips
+    #     optimizer_t.zero_grad()
+    #     total_loss_t.backward()
+    #     optimizer_t.step()
+
+    # # log imgs after warmup
+    # img = (255 * (img + 0.5).clip(0, 1)).to(torch.uint8)
+    # grid = torchvision.utils.make_grid(img)
+    # logger.add_image('images', grid, global_step)
+    # grid = torchvision.utils.make_grid(img_hat)
+    # logger.add_image('images_reconstructed', grid, global_step)
 
     # training loop
     for epoch in range(num_epoch):
@@ -115,11 +124,7 @@ def train(exp_dir: str = "logs",
             img = img.float() / 255.0 - 0.5
             img, label = img.to(device), label.to(device)
             # train discriminator
-            # img_hat, cnt = tokenizer(img)
             img_hat = tokenizer(img).detach()
-            # bce_fake = bce_loss(discriminator(img_hat.detach()), torch.zeros((img.shape[0], 1), device=device))
-            # bce_real = bce_loss(discriminator(img), torch.ones((img.shape[0], 1), device=device))
-            # total_loss_d = bce_fake + bce_real
             gan_fake = discriminator(img_hat).mean()
             gan_real = discriminator(img).mean()
             gp = calc_gradient_penalty(discriminator, img, img_hat, device)
@@ -131,25 +136,19 @@ def train(exp_dir: str = "logs",
             if i % 5 == 0:
                 # train tokenizer (generator)
                 img_hat = tokenizer(img)
-                # bce = bce_loss(discriminator(img_hat), torch.ones((img.shape[0], 1), device=device))
                 mse = mse_loss(img_hat, img)
-                # lpips = lpips_loss(img_hat, img)
-                # total_loss_t = mse + (0.01*bce) + (0.001*lpips.sum())
-                # total_loss_t = lpips.sum()
-                total_loss_t = mse - (0.001*discriminator(img_hat).mean())
+                lpips = lpips_loss(img_hat, img)
+                total_loss_t = (5*mse) - (0.1*discriminator(img_hat).mean()) + (0.1*lpips.sum())
                 optimizer_t.zero_grad()
                 total_loss_t.backward()
                 optimizer_t.step()
                 train_loss += total_loss_t.item()
                 train_mse += mse.item()
+                train_lpips += lpips.sum().item() * 0.001
             train_disc += total_loss_d.item()
             train_fake += gan_fake.item()
             train_real += gan_real.item()
             train_gp += gp.item()
-
-            # store losses
-            # train_bce += bce.item() * 0.01
-            # train_lpips += lpips.sum().item() * 0.001
            
             global_step += 1
             i += 1
@@ -177,27 +176,20 @@ def train(exp_dir: str = "logs",
                 # validate discriminator
                 # img_hat, cnt = tokenizer(img)
                 img_hat = tokenizer(img)
-                # bce_fake = bce_loss(discriminator(img_hat.detach()), torch.zeros((img.shape[0], 1), device=device))
-                # bce_real = bce_loss(discriminator(img), torch.ones((img.shape[0], 1), device=device))
-                # total_loss_d = bce_fake + bce_real
                 gan_fake = discriminator(img_hat).mean()
                 gan_real = discriminator(img).mean()
                 total_loss_d = gan_fake - gan_real
 
                 # validate tokenizer (generator)
-                # bce = bce_loss(discriminator(img_hat), torch.ones((img.shape[0], 1), device=device))
                 mse = mse_loss(img_hat, img)
-                # lpips = lpips_loss(img_hat, img)
-                # total_loss_t = mse + (0.01*bce) + (0.001*lpips.sum())
-                # total_loss_t = lpips.sum()
-                # total_loss_t = mse - gan_fake
-                total_loss_t = mse
+                lpips = lpips_loss(img_hat, img)
+                total_loss_t = (5*mse) - (0.1*gan_fake) + (0.1*lpips)
                 
                 # store losses
                 val_loss += total_loss_t.item()
                 # val_bce += bce.item() * 0.01
                 val_mse += mse.item()
-                # val_lpips += lpips.sum().item() * 0.001
+                val_lpips += lpips.sum().item() * 0.001
                 val_disc += total_loss_d.item()
             metrics["val_loss"].append(val_loss)
             metrics["val_bce"].append(val_bce)
@@ -212,9 +204,10 @@ def train(exp_dir: str = "logs",
         logger.add_scalar('val_loss', epoch_val_loss, global_step)
 
         # add last of the reconstructed images to tensorboard
-        grid = torchvision.utils.make_grid(img * 255)
+        img = (255 * (img + 0.5).clip(0, 1)).to(torch.uint8)
+        grid = torchvision.utils.make_grid(img)
         logger.add_image('images', grid, global_step)
-        grid = torchvision.utils.make_grid(img_hat * 255)
+        grid = torchvision.utils.make_grid(img_hat)
         logger.add_image('images_reconstructed', grid, global_step)
 
         # print on first, last, every 10th epoch
