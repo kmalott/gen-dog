@@ -5,6 +5,8 @@ from pathlib import Path
 import numpy as np
 import torch
 import torch.utils.tensorboard as tb
+import torch.nn.functional as F
+
 from tqdm import tqdm
 import torchvision
 from lpips import LPIPS
@@ -128,6 +130,13 @@ def train(exp_dir: str = "logs",
             gan_real = discriminator(img).mean()
             gp = calc_gradient_penalty(discriminator, img, img_hat, device)
             total_loss_d = gan_fake - gan_real + (10*gp) 
+            # dis_fake = discriminator(img_hat)
+            # dis_real = discriminator(img)
+            # gan_fake = F.relu(1. + dis_fake).mean()
+            # gan_real = F.relu(1. - dis_real).mean()
+            # alpha
+            # reg = reg = torch.mean(F.relu(dis_real - alpha_f).pow(2)) + torch.mean(F.relu(alpha_r - dis_fake).pow(2))
+            # total_loss_d = (o,3*reg) -(gan_real + gan_fake)
             optimizer_d.zero_grad()
             total_loss_d.backward()
             optimizer_d.step()
@@ -204,7 +213,7 @@ def train(exp_dir: str = "logs",
         logger.add_scalar('val_loss', epoch_val_loss, global_step)
 
         # add last of the reconstructed images to tensorboard
-        grid = torchvision.utils.make_grid()
+        grid = torchvision.utils.make_grid(img)
         logger.add_image('images', grid, global_step)
         grid = torchvision.utils.make_grid(img_hat)
         logger.add_image('images_reconstructed', grid, global_step)
