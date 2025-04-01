@@ -76,9 +76,9 @@ def train(exp_dir: str = "logs",
                }
     
     # warmup loop
+    i = 0
     tokenizer.train()
     for img, label in tqdm(train_data):
-        img = img.float() / 255.0 - 0.5
         img, label = img.to(device), label.to(device)
         img_hat = tokenizer(img)
         mse = mse_loss(img_hat, img)
@@ -87,9 +87,9 @@ def train(exp_dir: str = "logs",
         optimizer_t.zero_grad()
         total_loss_t.backward()
         optimizer_t.step()
+        i += 1
 
     # log imgs after warmup
-    img = (255 * (img + 0.5).clip(0, 1)).to(torch.uint8)
     grid = torchvision.utils.make_grid(img)
     logger.add_image('images', grid, global_step)
     grid = torchvision.utils.make_grid(img_hat)
@@ -121,7 +121,6 @@ def train(exp_dir: str = "logs",
 
         i = 0
         for img, label in tqdm(train_data):
-            img = img.float() / 255.0 - 0.5
             img, label = img.to(device), label.to(device)
             # train discriminator
             img_hat = tokenizer(img).detach()
@@ -138,13 +137,15 @@ def train(exp_dir: str = "logs",
                 img_hat = tokenizer(img)
                 mse = mse_loss(img_hat, img)
                 lpips = lpips_loss(img_hat, img)
-                total_loss_t = (5*mse) - (0.1*discriminator(img_hat).mean()) + (0.1*lpips.sum())
+                gan = discriminator(img_hat).mean()
+                total_loss_t = (10*mse) - (0.1*gan) + (0.5*lpips.sum())
                 optimizer_t.zero_grad()
                 total_loss_t.backward()
                 optimizer_t.step()
                 train_loss += total_loss_t.item()
-                train_mse += mse.item()
-                train_lpips += lpips.sum().item() * 0.001
+                train_mse += mse.item() * 10
+                train_bce += gan.item() * 0.1
+                train_lpips += lpips.sum().item() * 0.5
             train_disc += total_loss_d.item()
             train_fake += gan_fake.item()
             train_real += gan_real.item()
@@ -171,7 +172,6 @@ def train(exp_dir: str = "logs",
             discriminator.eval()
 
             for img, label in tqdm(val_data):
-                img = img.float() / 255.0 - 0.5
                 img, label = img.to(device), label.to(device)
                 # validate discriminator
                 # img_hat, cnt = tokenizer(img)
@@ -183,13 +183,13 @@ def train(exp_dir: str = "logs",
                 # validate tokenizer (generator)
                 mse = mse_loss(img_hat, img)
                 lpips = lpips_loss(img_hat, img)
-                total_loss_t = (5*mse) - (0.1*gan_fake) + (0.1*lpips.sum())
+                total_loss_t = (10*mse) - (0.1*gan_fake) + (0.5*lpips.sum())
                 
                 # store losses
                 val_loss += total_loss_t.item()
-                # val_bce += bce.item() * 0.01
-                val_mse += mse.item()
-                val_lpips += lpips.sum().item() * 0.001
+                val_bce += gan_fake.item() * 0.1
+                val_mse += mse.item() * 10
+                val_lpips += lpips.sum().item() * 0.5
                 val_disc += total_loss_d.item()
             metrics["val_loss"].append(val_loss)
             metrics["val_bce"].append(val_bce)
@@ -204,8 +204,7 @@ def train(exp_dir: str = "logs",
         logger.add_scalar('val_loss', epoch_val_loss, global_step)
 
         # add last of the reconstructed images to tensorboard
-        img = (255 * (img + 0.5).clip(0, 1)).to(torch.uint8)
-        grid = torchvision.utils.make_grid(img)
+        grid = torchvision.utils.make_grid()
         logger.add_image('images', grid, global_step)
         grid = torchvision.utils.make_grid(img_hat)
         logger.add_image('images_reconstructed', grid, global_step)
