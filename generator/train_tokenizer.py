@@ -83,7 +83,7 @@ def train(exp_dir: str = "logs",
         img_hat = tokenizer(img)
         mse = mse_loss(img_hat, img)
         lpips = lpips_loss(img_hat, img)
-        total_loss_t = 5*mse + 0.1*lpips
+        total_loss_t = 5*mse + 0.1*lpips.sum()
         optimizer_t.zero_grad()
         total_loss_t.backward()
         optimizer_t.step()
