@@ -76,24 +76,24 @@ def train(exp_dir: str = "logs",
                }
     
     # warmup loop
-    # tokenizer.train()
-    # for img, label in tqdm(train_data):
-    #     img = img.float() / 255.0 - 0.5
-    #     img, label = img.to(device), label.to(device)
-    #     img_hat = tokenizer(img)
-    #     mse = mse_loss(img_hat, img)
-    #     lpips = lpips_loss(img_hat, img)
-    #     total_loss_t = 5*mse + 0.1*lpips
-    #     optimizer_t.zero_grad()
-    #     total_loss_t.backward()
-    #     optimizer_t.step()
+    tokenizer.train()
+    for img, label in tqdm(train_data):
+        img = img.float() / 255.0 - 0.5
+        img, label = img.to(device), label.to(device)
+        img_hat = tokenizer(img)
+        mse = mse_loss(img_hat, img)
+        lpips = lpips_loss(img_hat, img)
+        total_loss_t = 5*mse + 0.1*lpips
+        optimizer_t.zero_grad()
+        total_loss_t.backward()
+        optimizer_t.step()
 
-    # # log imgs after warmup
-    # img = (255 * (img + 0.5).clip(0, 1)).to(torch.uint8)
-    # grid = torchvision.utils.make_grid(img)
-    # logger.add_image('images', grid, global_step)
-    # grid = torchvision.utils.make_grid(img_hat)
-    # logger.add_image('images_reconstructed', grid, global_step)
+    # log imgs after warmup
+    img = (255 * (img + 0.5).clip(0, 1)).to(torch.uint8)
+    grid = torchvision.utils.make_grid(img)
+    logger.add_image('images', grid, global_step)
+    grid = torchvision.utils.make_grid(img_hat)
+    logger.add_image('images_reconstructed', grid, global_step)
 
     # training loop
     for epoch in range(num_epoch):
