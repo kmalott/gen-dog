@@ -183,7 +183,7 @@ def train(exp_dir: str = "logs",
                 # validate tokenizer (generator)
                 mse = mse_loss(img_hat, img)
                 lpips = lpips_loss(img_hat, img)
-                total_loss_t = (5*mse) - (0.1*gan_fake) + (0.1*lpips)
+                total_loss_t = (5*mse) - (0.1*gan_fake) + (0.1*lpips.sum())
                 
                 # store losses
                 val_loss += total_loss_t.item()
