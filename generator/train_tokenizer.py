@@ -61,7 +61,7 @@ def train(exp_dir: str = "logs",
 
     # create loss functions and optimizer
     mse_loss = torch.nn.MSELoss()
-    lpips_loss = LPIPS(net='vgg')
+    lpips_loss = LPIPS(net='alex')
     lpips_loss = lpips_loss.to(device)
     # bce_loss = torch.nn.BCEWithLogitsLoss()
     # entropy_loss = ...
