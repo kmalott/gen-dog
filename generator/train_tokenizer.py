@@ -78,24 +78,26 @@ def train(exp_dir: str = "logs",
                }
     
     # warmup loop
-    i = 0
-    tokenizer.train()
-    for img, label in tqdm(train_data):
-        img, label = img.to(device), label.to(device)
-        img_hat = tokenizer(img)
-        mse = mse_loss(img_hat, img)
-        lpips = lpips_loss(img_hat, img)
-        total_loss_t = 10*mse + 0.5*lpips.sum()
-        optimizer_t.zero_grad()
-        total_loss_t.backward()
-        optimizer_t.step()
-        i += 1
+    warmup = False
+    if warmup:
+        i = 0
+        tokenizer.train()
+        for img, label in tqdm(train_data):
+            img, label = img.to(device), label.to(device)
+            img_hat = tokenizer(img)
+            mse = mse_loss(img_hat, img)
+            lpips = lpips_loss(img_hat, img)
+            total_loss_t = 10*mse + 0.5*lpips.sum()
+            optimizer_t.zero_grad()
+            total_loss_t.backward()
+            optimizer_t.step()
+            i += 1
 
-    # log imgs after warmup
-    grid = torchvision.utils.make_grid(img)
-    logger.add_image('images', grid, global_step)
-    grid = torchvision.utils.make_grid(img_hat)
-    logger.add_image('images_reconstructed', grid, global_step)
+        # log imgs after warmup
+        grid = torchvision.utils.make_grid(img)
+        logger.add_image('images', grid, global_step)
+        grid = torchvision.utils.make_grid(img_hat)
+        logger.add_image('images_reconstructed', grid, global_step)
     
     # initialize weighed averages (alpha)
     # alpha_f = 100
@@ -129,41 +131,43 @@ def train(exp_dir: str = "logs",
         for img, label in tqdm(train_data):
             img, label = img.to(device), label.to(device)
             # train discriminator
-            img_hat = tokenizer(img).detach()
-            gan_fake = discriminator(img_hat).mean()
-            gan_real = discriminator(img).mean()
-            gp = calc_gradient_penalty(discriminator, img, img_hat, device)
-            total_loss_d = gan_fake - gan_real + (10*gp) 
-            # dis_fake = discriminator(img_hat)
-            # dis_real = discriminator(img)
-            # gan_fake = F.relu(1. + dis_fake).mean()
-            # gan_real = F.relu(1. - dis_real).mean()
-            # alpha_f = (0.99*alpha_f) + (0.01*dis_fake.mean().item())
-            # alpha_r = (0.99*alpha_r) + (0.01*dis_real.mean().item())
-            # reg = reg = torch.mean(F.relu(dis_real - alpha_f).pow(2)) + torch.mean(F.relu(alpha_r - dis_fake).pow(2))
-            # total_loss_d = (0.3*reg) - (gan_real + gan_fake)
-            optimizer_d.zero_grad()
-            total_loss_d.backward()
-            optimizer_d.step()
+            # img_hat = tokenizer(img).detach()
+            # gan_fake = discriminator(img_hat).mean()
+            # gan_real = discriminator(img).mean()
+            # gp = calc_gradient_penalty(discriminator, img, img_hat, device)
+            # total_loss_d = gan_fake - gan_real + (10*gp) 
+            # # dis_fake = discriminator(img_hat)
+            # # dis_real = discriminator(img)
+            # # gan_fake = F.relu(1. + dis_fake).mean()
+            # # gan_real = F.relu(1. - dis_real).mean()
+            # # alpha_f = (0.99*alpha_f) + (0.01*dis_fake.mean().item())
+            # # alpha_r = (0.99*alpha_r) + (0.01*dis_real.mean().item())
+            # # reg = reg = torch.mean(F.relu(dis_real - alpha_f).pow(2)) + torch.mean(F.relu(alpha_r - dis_fake).pow(2))
+            # # total_loss_d = (0.3*reg) - (gan_real + gan_fake)
+            # optimizer_d.zero_grad()
+            # total_loss_d.backward()
+            # optimizer_d.step()
 
-            if i % 5 == 0:
-                # train tokenizer (generator)
-                img_hat = tokenizer(img)
-                mse = mse_loss(img_hat, img)
-                lpips = lpips_loss(img_hat, img)
-                gan = discriminator(img_hat).mean()
-                total_loss_t = (10*mse) - (0.1*gan) + (0.5*lpips.sum())
-                optimizer_t.zero_grad()
-                total_loss_t.backward()
-                optimizer_t.step()
-                train_loss += total_loss_t.item()
-                train_mse += mse.item() * 10
-                train_bce += gan.item() * 0.1
-                train_lpips += lpips.sum().item() * 0.5
-            train_disc += total_loss_d.item()
-            train_fake += gan_fake.item()
-            train_real += gan_real.item()
-            train_gp += gp.item()
+            # if i % 5 == 0:
+            # train tokenizer (generator)
+            img_hat = tokenizer(img)
+            mse = mse_loss(img_hat, img)
+            lpips = lpips_loss(img_hat, img)
+            # gan = discriminator(img_hat).mean()
+            # total_loss_t = (10*mse) - (0.1*gan) + (0.5*lpips.sum())
+            total_loss_t = (10*mse) + (0.5*lpips.sum())
+            optimizer_t.zero_grad()
+            total_loss_t.backward()
+            optimizer_t.step()
+            train_loss += total_loss_t.item()
+            train_mse += mse.item() * 10
+            # train_bce += gan.item() * 0.1
+            train_lpips += lpips.sum().item() * 0.5
+
+            # train_disc += total_loss_d.item()
+            # train_fake += gan_fake.item()
+            # train_real += gan_real.item()
+            # train_gp += gp.item()
            
             global_step += 1
             i += 1
@@ -190,21 +194,22 @@ def train(exp_dir: str = "logs",
                 # validate discriminator
                 # img_hat, cnt = tokenizer(img)
                 img_hat = tokenizer(img)
-                gan_fake = discriminator(img_hat).mean()
-                gan_real = discriminator(img).mean()
-                total_loss_d = gan_fake - gan_real
+                # gan_fake = discriminator(img_hat).mean()
+                # gan_real = discriminator(img).mean()
+                # total_loss_d = gan_fake - gan_real
 
                 # validate tokenizer (generator)
                 mse = mse_loss(img_hat, img)
                 lpips = lpips_loss(img_hat, img)
-                total_loss_t = (10*mse) - (0.1*gan_fake) + (0.5*lpips.sum())
-                
+                # total_loss_t = (10*mse) - (0.1*gan_fake) + (0.5*lpips.sum())
+                total_loss_t = (10*mse) + (0.5*lpips.sum())
+
                 # store losses
                 val_loss += total_loss_t.item()
-                val_bce += gan_fake.item() * 0.1
+                # val_bce += gan_fake.item() * 0.1
                 val_mse += mse.item() * 10
                 val_lpips += lpips.sum().item() * 0.5
-                val_disc += total_loss_d.item()
+                # val_disc += total_loss_d.item()
             metrics["val_loss"].append(val_loss)
             metrics["val_bce"].append(val_bce)
             metrics["val_lpips"].append(val_lpips)
