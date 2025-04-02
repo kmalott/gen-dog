@@ -151,7 +151,7 @@ class BSQTokenizer(torch.nn.Module):
             layers.append(ResBlock(64))
             # final layer
             layers.append(torch.nn.Conv2d(64, 3, kernel_size=3, stride=1, padding=1))
-            layers.append(torch.nn.Sigmoid())
+            # layers.append(torch.nn.Sigmoid())
             self.model = torch.nn.Sequential(*layers)
         
         def forward(self, x: torch.Tensor) -> torch.Tensor:
