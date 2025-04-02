@@ -119,10 +119,13 @@ class BSQTokenizer(torch.nn.Module):
             layers.append(ResBlock(512))
             layers.append(ResBlock(512))
             # final layers
-            layers.append(torch.nn.Conv2d(512, 256, kernel_size=1, stride=1, padding=0))
+            layers.append(torch.nn.Conv2d(512, 256, kernel_size=1, stride=1, padding=0, bias=False))
             layers.append(torch.nn.BatchNorm2d(256))
             layers.append(torch.nn.LeakyReLU(0.1))
-            layers.append(torch.nn.Conv2d(256, latent_dim, kernel_size=1, stride=1, padding=0))
+            layers.append(torch.nn.Conv2d(256, 128, kernel_size=1, stride=1, padding=0, bias=False))
+            layers.append(torch.nn.BatchNorm2d(128))
+            layers.append(torch.nn.LeakyReLU(0.1))
+            layers.append(torch.nn.Conv2d(128, latent_dim, kernel_size=1, stride=1, padding=0))
             self.model = torch.nn.Sequential(*layers)
 
         def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -132,11 +135,14 @@ class BSQTokenizer(torch.nn.Module):
         def __init__(self, patch_size: int, latent_dim: int):
             super().__init__()
             layers = []
-            # first layer
-            layers.append(torch.nn.Conv2d(latent_dim, 256, kernel_size=1, stride=1, padding=0))
+            # first layers
+            layers.append(torch.nn.Conv2d(latent_dim, 128, kernel_size=1, stride=1, padding=0, bias=False))
+            layers.append(torch.nn.BatchNorm2d(128))
+            layers.append(torch.nn.LeakyReLU(0.1))
+            layers.append(torch.nn.Conv2d(128, 256, kernel_size=1, stride=1, padding=0, bias=False))
             layers.append(torch.nn.BatchNorm2d(256))
             layers.append(torch.nn.LeakyReLU(0.1))
-            layers.append(torch.nn.Conv2d(256, 512, kernel_size=3, stride=1, padding=1, bias=False))
+            layers.append(torch.nn.Conv2d(256, 512, kernel_size=1, stride=1, padding=0, bias=False))
             layers.append(torch.nn.BatchNorm2d(512))
             layers.append(torch.nn.LeakyReLU(0.1))
             # (repeated?) resBlock(s)
@@ -151,7 +157,7 @@ class BSQTokenizer(torch.nn.Module):
             layers.append(ResBlock(64))
             # final layer
             layers.append(torch.nn.Conv2d(64, 3, kernel_size=3, stride=1, padding=1))
-            # layers.append(torch.nn.Sigmoid())
+            layers.append(torch.nn.Sigmoid())
             self.model = torch.nn.Sequential(*layers)
         
         def forward(self, x: torch.Tensor) -> torch.Tensor:
