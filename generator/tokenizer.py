@@ -98,6 +98,23 @@ class UpBlock(torch.nn.Module):
 
     def forward(self, x):
         return self.model(x)
+    
+class UpBlockV2(torch.nn.Module):
+    def __init__(self, in_c, out_c):
+        super().__init__()
+        layers = []
+        # layers.append(torch.nn.ConvTranspose2d(in_c, out_c, kernel_size=3, stride=2, padding=1, output_padding=1, bias=False))
+        layers.append(torch.nn.Upsample(scale_factor=2, mode='bicubic'))
+        layers.append(torch.nn.Conv2d(in_c, out_c, kernel_size=1, stride=1, padding=0, bias=False))
+        layers.append(torch.nn.BatchNorm2d(out_c))
+        layers.append(torch.nn.LeakyReLU(0.1))
+        layers.append(torch.nn.Conv2d(out_c, out_c, kernel_size=3, stride=1, padding=1, bias=False))
+        layers.append(torch.nn.BatchNorm2d(out_c))
+        layers.append(torch.nn.LeakyReLU(0.1))
+        self.model = torch.nn.Sequential(*layers)
+
+    def forward(self, x):
+        return self.model(x)
 
 class BSQTokenizer(torch.nn.Module):
     class Encoder(torch.nn.Module):
@@ -149,11 +166,11 @@ class BSQTokenizer(torch.nn.Module):
             layers.append(ResBlock(512))
             layers.append(ResBlock(512))
             # series of resBlock -> upBlock
-            layers.append(UpBlock(512, 256))
+            layers.append(UpBlockV2(512, 256))
             layers.append(ResBlock(256))
-            layers.append(UpBlock(256, 128))
+            layers.append(UpBlockV2(256, 128))
             layers.append(ResBlock(128))
-            layers.append(UpBlock(128, 64))
+            layers.append(UpBlockV2(128, 64))
             layers.append(ResBlock(64))
             # final layer
             layers.append(torch.nn.Conv2d(64, 3, kernel_size=3, stride=1, padding=1))
