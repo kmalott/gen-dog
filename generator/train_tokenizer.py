@@ -51,8 +51,8 @@ def train(exp_dir: str = "logs",
 
     tokenizer = BSQTokenizer(patch_size=2, latent_dim=64, codebook=14)
     tokenizer = tokenizer.to(device)
-    discriminator = Discriminator()
-    discriminator = discriminator.to(device)
+    # discriminator = Discriminator()
+    # discriminator = discriminator.to(device)
 
     # load data loaders
     # train_data, val_data = load_data_loader()
@@ -66,7 +66,7 @@ def train(exp_dir: str = "logs",
     # bce_loss = torch.nn.BCEWithLogitsLoss()
     # entropy_loss = ...
     optimizer_t = torch.optim.AdamW(params=tokenizer.parameters(), lr=lr)
-    optimizer_d = torch.optim.AdamW(params=discriminator.parameters(), lr=0.0001, betas=(0.0, 0.9))
+    # optimizer_d = torch.optim.AdamW(params=discriminator.parameters(), lr=0.0001, betas=(0.0, 0.9))
 
 
     global_step = 0
@@ -110,7 +110,7 @@ def train(exp_dir: str = "logs",
             metrics[key].clear()
 
         tokenizer.train()
-        discriminator.train()
+        # discriminator.train()
 
         train_loss = torch.tensor([0.0])
         val_loss = torch.tensor([0.0])
@@ -187,7 +187,7 @@ def train(exp_dir: str = "logs",
         # disable gradient computation and switch to evaluation mode
         with torch.inference_mode():
             tokenizer.eval()
-            discriminator.eval()
+            # discriminator.eval()
 
             for img, label in tqdm(val_data):
                 img, label = img.to(device), label.to(device)
