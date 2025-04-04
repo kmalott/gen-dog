@@ -27,47 +27,6 @@ class ResBlock(torch.nn.Module):
 
     def forward(self, x):
         return self.lrelu(self.model(x) + x)
-    
-class ResDownBlock(torch.nn.Module):
-    def __init__(self, in_c, out_c):
-        super().__init__()
-        layers = []
-        layers.append(torch.nn.Conv2d(in_c, out_c, kernel_size=3, stride=2, padding=1, bias=False))
-        layers.append(torch.nn.BatchNorm2d(out_c))
-        layers.append(torch.nn.LeakyReLU(0.1))
-        layers.append(torch.nn.Conv2d(out_c, out_c, kernel_size=3, stride=1, padding=1, bias=False))
-        layers.append(torch.nn.BatchNorm2d(out_c))
-        self.model = torch.nn.Sequential(*layers)
-        res_layers = []
-        res_layers.append(torch.nn.AvgPool2d(kernel_size=2, stride=2, padding=0))
-        res_layers.append(torch.nn.Conv2d(in_c, out_c, kernel_size=1, stride=1, padding=0, bias=False))
-        self.res = torch.nn.Sequential(*res_layers)
-        self.lrelu = torch.nn.LeakyReLU(0.1)
-
-    def forward(self, x):
-        return self.lrelu(self.model(x) + self.res(x))
-    
-class ResUpBlock(torch.nn.Module):
-    def __init__(self, in_c, out_c):
-        super().__init__()
-        layers = []
-        layers.append(torch.nn.ConvTranspose2d(in_c, out_c, kernel_size=3, stride=2, padding=1, output_padding=1, bias=False))
-        layers.append(torch.nn.BatchNorm2d(out_c))
-        layers.append(torch.nn.LeakyReLU(0.1))
-        layers.append(torch.nn.Conv2d(out_c, out_c, kernel_size=3, stride=1, padding=1, bias=False))
-        layers.append(torch.nn.BatchNorm2d(out_c))
-        self.model = torch.nn.Sequential(*layers)
-        res_layers = []
-        # option 1 (conv)
-        res_layers.append(torch.nn.ConvTranspose2d(in_c, out_c, kernel_size=1, stride=2, padding=0, output_padding=1, bias=False))
-        # option 2 (interpolation)
-        # res_layers.append(torch.nn.Upsample(scale_factor=2, mode='bicubic'))
-        # res_layers.append(torch.nn.Conv2d(in_c, out_c, kernel_size=1, stride=1, padding=0, bias=False))
-        self.res = torch.nn.Sequential(*res_layers)
-        self.lrelu = torch.nn.LeakyReLU(0.1)
-
-    def forward(self, x):
-        return self.lrelu(self.model(x) + self.res(x))
 
 class DownBlock(torch.nn.Module):
     def __init__(self, in_c, out_c):
