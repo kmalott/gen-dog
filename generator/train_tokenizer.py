@@ -58,8 +58,6 @@ def train(exp_dir: str = "logs",
 
     # load data loaders
     train_data, val_data = load_data_loader()
-    train_data.to(device)
-    val_data.to(device)
     # alternatively run: (if dataloaders haven't been made yet)
     # train_data, val_data = load_data('./data/', batch_size=batch_size)
 
