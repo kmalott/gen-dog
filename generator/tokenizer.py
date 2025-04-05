@@ -110,18 +110,18 @@ class BSQTokenizer(torch.nn.Module):
         def forward(self, x: torch.Tensor) -> torch.Tensor:
             return self.model(hwc_to_chw(x))
 
-    def __init__(self, patch_size: int, latent_dim: int, codebook: int):
+    def __init__(self, patch_size: int, latent_dim: int, codebook: int, gamma: float = 1.0):
         super().__init__()
         self.encoder = self.Encoder(patch_size, latent_dim)
         self.down_project = torch.nn.Linear(latent_dim, codebook)
         self.up_project = torch.nn.Linear(codebook, latent_dim)
         self.decoder = self.Decoder(patch_size, latent_dim)
         self.codebook = codebook
+        self.gamma = gamma
 
     def forward(self, x: torch.Tensor):
-        # cnt = torch.bincount(self.encode_int(x).flatten(), minlength=2**14)
-        # return (self.decode(self.encode(x)), cnt)
-        return self.decode(self.encode(x))
+        uq, entropy_loss = self.encode(x)
+        return self.decode(uq), entropy_loss
     
     def diff_sign(self, x: torch.Tensor) -> torch.Tensor:
         sign = 2 * (x >= 0).float() - 1
@@ -131,7 +131,11 @@ class BSQTokenizer(torch.nn.Module):
         z = self.encoder(x)
         v = self.down_project(z)
         u = torch.nn.functional.normalize(v, p=2, dim=-1)
-        return self.diff_sign(u)
+        uq = self.diff_sign(u)
+
+        per_sample_entropy, codebook_entropy = self.soft_entropy_loss(v)
+        entropy_loss = per_sample_entropy - self.gamma * codebook_entropy
+        return uq, entropy_loss
 
     def decode(self, x: torch.Tensor) -> torch.Tensor:
         z_hat = self.up_project(x)
@@ -146,6 +150,15 @@ class BSQTokenizer(torch.nn.Module):
         x = 2 * ((x[..., None] & (1 << torch.arange(self.codebook).to(x.device))) > 0).float() - 1
         return self.decode(x)
     
+    def soft_entropy_loss(self, v):
+        p = torch.sigmoid(-4 * v)
+        prob = torch.stack([p, 1-p], dim=-1)
+        per_sample_entropy = -(prob * torch.log(prob + 1e-8)).sum(dim=-1)
+        per_sample_entropy = per_sample_entropy.sum(dim=-1).mean()
+        avg_prob = torch.mean(prob, dim=(0,1,2))
+        codebook_entropy = -(avg_prob * torch.log(avg_prob + 1e-8)).sum(dim=-1)
+        codebook_entropy = codebook_entropy.sum(dim=-1)
+        return per_sample_entropy, codebook_entropy
 
 def debug_model(batch_size: int = 1):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -154,7 +167,7 @@ def debug_model(batch_size: int = 1):
     print(f"Input shape: {sample_batch.shape}")
 
     model = BSQTokenizer(2, 128, 20)
-    output = model(sample_batch)
+    output, _ = model(sample_batch)
 
     print(f"Output shape: {output.shape}")
 
