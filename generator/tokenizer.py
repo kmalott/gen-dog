@@ -110,7 +110,7 @@ class BSQTokenizer(torch.nn.Module):
         def forward(self, x: torch.Tensor) -> torch.Tensor:
             return self.model(hwc_to_chw(x))
 
-    def __init__(self, training: bool, latent_dim: int, codebook: int, gamma: float = 1.0):
+    def __init__(self, latent_dim: int, codebook: int, gamma: float = 1.0):
         super().__init__()
         self.encoder = self.Encoder(latent_dim)
         self.down_project = torch.nn.Linear(latent_dim, codebook)
@@ -118,7 +118,6 @@ class BSQTokenizer(torch.nn.Module):
         self.decoder = self.Decoder(latent_dim)
         self.codebook = codebook
         self.gamma = gamma
-        self.training = training
 
     def forward(self, x: torch.Tensor):
         uq, entropy_loss, used_codes = self.encode(x)
@@ -133,10 +132,7 @@ class BSQTokenizer(torch.nn.Module):
         v = self.down_project(z)
         u = torch.nn.functional.normalize(v, p=2, dim=-1)
         uq = self.diff_sign(u)
-        if not self.training:
-            used_codes = torch.unique(self.encode_int(uq), return_counts=False)
-        else:
-            used_codes = None
+        used_codes = torch.unique(self.encode_int(uq), return_counts=False)
         per_sample_entropy, codebook_entropy = self.soft_entropy_loss(v)
         entropy_loss = per_sample_entropy - self.gamma * codebook_entropy
         return uq, entropy_loss, used_codes
@@ -169,7 +165,7 @@ def debug_model(batch_size: int = 1):
 
     print(f"Input shape: {sample_batch.shape}")
 
-    model = BSQTokenizer(True, 128, 20)
+    model = BSQTokenizer(128, 20)
     output, _, _ = model(sample_batch)
 
     print(f"Output shape: {output.shape}")
