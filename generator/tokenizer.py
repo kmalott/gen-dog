@@ -110,13 +110,14 @@ class BSQTokenizer(torch.nn.Module):
         def forward(self, x: torch.Tensor) -> torch.Tensor:
             return self.model(hwc_to_chw(x))
 
-    def __init__(self, latent_dim: int, codebook: int, gamma: float = 1.0):
+    def __init__(self, latent_dim: int, codebook: int, gamma0: float = 1.0, gamma: float = 1.0):
         super().__init__()
         self.encoder = self.Encoder(latent_dim)
         self.down_project = torch.nn.Linear(latent_dim, codebook)
         self.up_project = torch.nn.Linear(codebook, latent_dim)
         self.decoder = self.Decoder(latent_dim)
         self.codebook = codebook
+        self.gamma0 = gamma0
         self.gamma = gamma
 
     def forward(self, x: torch.Tensor):
@@ -134,7 +135,7 @@ class BSQTokenizer(torch.nn.Module):
         uq = self.diff_sign(u)
         used_codes = torch.unique(self.encode_int(uq.detach()), return_counts=False)
         per_sample_entropy, codebook_entropy = self.soft_entropy_loss(v)
-        entropy_loss = per_sample_entropy - self.gamma * codebook_entropy
+        entropy_loss = self.gamma0 * per_sample_entropy - self.gamma * codebook_entropy
         return uq, entropy_loss, used_codes
 
     def decode(self, x: torch.Tensor) -> torch.Tensor:
