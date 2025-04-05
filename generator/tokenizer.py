@@ -60,7 +60,7 @@ class UpBlock(torch.nn.Module):
 
 class BSQTokenizer(torch.nn.Module):
     class Encoder(torch.nn.Module):
-        def __init__(self, patch_size: int, latent_dim: int):
+        def __init__(self, latent_dim: int):
             super().__init__()
             layers = []
             # first layers
@@ -85,7 +85,7 @@ class BSQTokenizer(torch.nn.Module):
             return chw_to_hwc(self.model(x))
         
     class Decoder(torch.nn.Module):
-        def __init__(self, patch_size: int, latent_dim: int):
+        def __init__(self, latent_dim: int):
             super().__init__()
             layers = []
             # first layers
@@ -110,12 +110,12 @@ class BSQTokenizer(torch.nn.Module):
         def forward(self, x: torch.Tensor) -> torch.Tensor:
             return self.model(hwc_to_chw(x))
 
-    def __init__(self, patch_size: int, latent_dim: int, codebook: int, gamma: float = 1.0):
+    def __init__(self, latent_dim: int, codebook: int, gamma: float = 1.0):
         super().__init__()
-        self.encoder = self.Encoder(patch_size, latent_dim)
+        self.encoder = self.Encoder(latent_dim)
         self.down_project = torch.nn.Linear(latent_dim, codebook)
         self.up_project = torch.nn.Linear(codebook, latent_dim)
-        self.decoder = self.Decoder(patch_size, latent_dim)
+        self.decoder = self.Decoder(latent_dim)
         self.codebook = codebook
         self.gamma = gamma
 
