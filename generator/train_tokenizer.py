@@ -164,7 +164,7 @@ def train(exp_dir: str = "logs",
             lpips = lpips_loss(img_hat, img)
             # gan = discriminator(img_hat).mean()
             # total_loss_t = (10*mse) - (0.1*gan) + (0.5*lpips.sum())
-            total_loss_t = (10*mse) + (0.5*lpips.sum())
+            total_loss_t = (10*mse) + (0.5*lpips.sum()) + (0.1*entropy)
             optimizer_t.zero_grad()
             total_loss_t.backward()
             optimizer_t.step()
@@ -205,7 +205,7 @@ def train(exp_dir: str = "logs",
                 mse = mse_loss(img_hat, img)
                 lpips = lpips_loss(img_hat, img)
                 # total_loss_t = (10*mse) - (0.1*gan_fake) + (0.5*lpips.sum())
-                total_loss_t = (10*mse) + (0.5*lpips.sum())
+                total_loss_t = (10*mse) + (0.5*lpips.sum()) + (0.1*entropy)
 
                 # store losses
                 val_loss += total_loss_t.item()
