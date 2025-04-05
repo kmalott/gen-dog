@@ -221,6 +221,10 @@ def train(exp_dir: str = "logs",
             # metrics["val_entropy"].append(val_entropy)
             # metrics["val_disc"].append(val_disc)
 
+        # check codebook utilization
+        print(f"Codebook unqiue values: {cb_usage.shape[0]} out of {(2**14)}")
+        print(f"Codebook utilization: {cb_usage.shape[0] / (2**14)}")
+
         # log average train and val accuracy to tensorboard
         # epoch_train_loss = torch.as_tensor(metrics["train_loss"])
         # epoch_val_loss = torch.as_tensor(metrics["val_loss"])
@@ -243,18 +247,18 @@ def train(exp_dir: str = "logs",
             f"val_mse={val_mse} \n"
             f"train_lpips={train_lpips} \n"
             f"val_lpips={val_lpips} \n"
-            f"train_lpips={train_entropy} \n"
-            f"val_lpips={val_entropy} \n"
+            f"train_entropy={train_entropy} \n"
+            f"val_entropy={val_entropy} \n"
             f"train_gan={train_gan} \n"
             f"val_gan={val_gan} \n"
             f"train_disc={train_disc} \n"
             f"val_disc={val_disc} \n"
         )
-        print(
-            f"Real Img Loss: {train_real} \n"
-            f"Fake Img Loss: {train_fake} \n"
-            f"Gradient Penalty: {train_gp}"
-        )
+        # print(
+        #     f"Real Img Loss: {train_real} \n"
+        #     f"Fake Img Loss: {train_fake} \n"
+        #     f"Gradient Penalty: {train_gp}"
+        # )
 
     # save a copy of model weights in the log directory
     torch.save(tokenizer.state_dict(), log_dir / f"{model_name}.th")
