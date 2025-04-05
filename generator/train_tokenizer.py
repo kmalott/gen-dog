@@ -49,7 +49,7 @@ def train(exp_dir: str = "logs",
     log_dir = Path(exp_dir) / f"{model_name}_{datetime.now().strftime('%m%d_%H%M%S')}"
     logger = tb.SummaryWriter(log_dir)
 
-    tokenizer = BSQTokenizer(patch_size=2, latent_dim=64, codebook=14)
+    tokenizer = BSQTokenizer(latent_dim=64, codebook=14, gamma=1.0)
     tokenizer = tokenizer.to(device)
     # discriminator = Discriminator()
     # discriminator = discriminator.to(device)
@@ -63,19 +63,18 @@ def train(exp_dir: str = "logs",
     mse_loss = torch.nn.MSELoss()
     lpips_loss = LPIPS(net='vgg')
     lpips_loss = lpips_loss.to(device)
-    # bce_loss = torch.nn.BCEWithLogitsLoss()
-    # entropy_loss = ...
     optimizer_t = torch.optim.AdamW(params=tokenizer.parameters(), lr=lr)
     # optimizer_d = torch.optim.AdamW(params=discriminator.parameters(), lr=0.0001, betas=(0.0, 0.9))
 
 
     global_step = 0
-    metrics = {"train_loss": [], "val_loss": [], 
-               "train_bce": [], "val_bce": [], 
-               "train_mse": [], "val_mse": [], 
-               "train_lpips": [], "val_lpips": [],
-               "train_disc": [], "val_disc": []
-               }
+    # metrics = {"train_loss": [], "val_loss": [], 
+    #            "train_gan": [], "val_gan": [], 
+    #            "train_mse": [], "val_mse": [], 
+    #            "train_lpips": [], "val_lpips": [],
+    #            "train_entropy": [], "val_entropy": [],
+    #            "train_disc": [], "val_disc": []
+    #            }
     
     # warmup loop
     warmup = False
@@ -84,7 +83,7 @@ def train(exp_dir: str = "logs",
         tokenizer.train()
         for img, label in tqdm(train_data):
             img, label = img.to(device), label.to(device)
-            img_hat = tokenizer(img)
+            img_hat, _, _ = tokenizer(img)
             mse = mse_loss(img_hat, img)
             lpips = lpips_loss(img_hat, img)
             total_loss_t = 10*mse + 0.5*lpips.sum()
@@ -99,29 +98,32 @@ def train(exp_dir: str = "logs",
         grid = torchvision.utils.make_grid(img_hat)
         logger.add_image('images_reconstructed', grid, global_step)
     
-    # initialize weighed averages (alpha)
+    # initialize weighed averages (alpha) for LeCAM reg. 
     # alpha_f = 100
     # alpha_r = 100
 
     # training loop
     for epoch in range(num_epoch):
         # clear metrics at beginning of epoch
-        for key in metrics:
-            metrics[key].clear()
+        # for key in metrics:
+        #     metrics[key].clear()
 
         tokenizer.train()
         # discriminator.train()
 
+        # reset losses
         train_loss = torch.tensor([0.0])
         val_loss = torch.tensor([0.0])
-        train_bce = torch.tensor([0.0])
-        val_bce = torch.tensor([0.0])
+        train_gan = torch.tensor([0.0])
+        val_gan = torch.tensor([0.0])
         train_mse = torch.tensor([0.0])
         val_mse = torch.tensor([0.0])
         train_lpips = torch.tensor([0.0])
         val_lpips = torch.tensor([0.0])
         train_disc = torch.tensor([0.0])
         val_disc = torch.tensor([0.0])
+        train_entropy = torch.tensor([0.0])
+        val_entropy = torch.tensor([0.0])
 
         train_fake = torch.tensor([0.0])
         train_real = torch.tensor([0.0])
@@ -131,11 +133,18 @@ def train(exp_dir: str = "logs",
         for img, label in tqdm(train_data):
             img, label = img.to(device), label.to(device)
             # train discriminator
-            # img_hat = tokenizer(img).detach()
+            # img_hat, _, _ = tokenizer(img).detach()
+
+            # WGAN Loss
             # gan_fake = discriminator(img_hat).mean()
             # gan_real = discriminator(img).mean()
             # gp = calc_gradient_penalty(discriminator, img, img_hat, device)
             # total_loss_d = gan_fake - gan_real + (10*gp) 
+            # optimizer_d.zero_grad()
+            # total_loss_d.backward()
+            # optimizer_d.step()
+
+            # LeCAM Reg. Loss
             # # dis_fake = discriminator(img_hat)
             # # dis_real = discriminator(img)
             # # gan_fake = F.relu(1. + dis_fake).mean()
@@ -150,20 +159,20 @@ def train(exp_dir: str = "logs",
 
             # if i % 5 == 0:
             # train tokenizer (generator)
-            img_hat = tokenizer(img)
+            img_hat, entropy, _ = tokenizer(img)
             mse = mse_loss(img_hat, img)
             lpips = lpips_loss(img_hat, img)
             # gan = discriminator(img_hat).mean()
             # total_loss_t = (10*mse) - (0.1*gan) + (0.5*lpips.sum())
             total_loss_t = (10*mse) + (0.5*lpips.sum())
-            # total_loss_t = lpips.sum()
             optimizer_t.zero_grad()
             total_loss_t.backward()
             optimizer_t.step()
             train_loss += total_loss_t.item()
             train_mse += mse.item() * 10
-            # train_bce += gan.item() * 0.1
             train_lpips += lpips.sum().item() * 0.5
+            train_entropy += entropy.item()
+            # train_gan += gan.item() * 0.1
 
             # train_disc += total_loss_d.item()
             # train_fake += gan_fake.item()
@@ -172,18 +181,12 @@ def train(exp_dir: str = "logs",
            
             global_step += 1
             i += 1
-            # if i % 100 == 0 and epoch == num_epoch - 1:
-            #     print((cnt == 0).float().mean().detach())
-            #     print((cnt <= 2).float().mean().detach())
-            #     print(cnt.min())
-            #     print(cnt.max())
-            #     print(cnt.sum())
-            #     print(cnt.shape)
-        metrics["train_loss"].append(train_loss)
-        metrics["train_bce"].append(train_bce)
-        metrics["train_lpips"].append(train_lpips)
-        metrics["train_mse"].append(train_mse)
-        metrics["train_disc"].append(train_disc)
+        # metrics["train_loss"].append(train_loss)
+        # metrics["train_gan"].append(train_gan)
+        # metrics["train_mse"].append(train_mse)
+        # metrics["train_lpips"].append(train_lpips)
+        # metrics["train_entropy"].append(train_entropy)
+        # metrics["train_disc"].append(train_disc)
 
         # disable gradient computation and switch to evaluation mode
         with torch.inference_mode():
@@ -193,8 +196,7 @@ def train(exp_dir: str = "logs",
             for img, label in tqdm(val_data):
                 img, label = img.to(device), label.to(device)
                 # validate discriminator
-                # img_hat, cnt = tokenizer(img)
-                img_hat = tokenizer(img)
+                img_hat, entropy, cb_usage = tokenizer(img)
                 # gan_fake = discriminator(img_hat).mean()
                 # gan_real = discriminator(img).mean()
                 # total_loss_d = gan_fake - gan_real
@@ -204,25 +206,26 @@ def train(exp_dir: str = "logs",
                 lpips = lpips_loss(img_hat, img)
                 # total_loss_t = (10*mse) - (0.1*gan_fake) + (0.5*lpips.sum())
                 total_loss_t = (10*mse) + (0.5*lpips.sum())
-                # total_loss_t = lpips.sum()
 
                 # store losses
                 val_loss += total_loss_t.item()
-                # val_bce += gan_fake.item() * 0.1
                 val_mse += mse.item() * 10
                 val_lpips += lpips.sum().item() * 0.5
+                val_entropy += entropy.item()
+                # val_gan += gan_fake.item() * 0.1
                 # val_disc += total_loss_d.item()
-            metrics["val_loss"].append(val_loss)
-            metrics["val_bce"].append(val_bce)
-            metrics["val_lpips"].append(val_lpips)
-            metrics["val_mse"].append(val_mse)
-            metrics["val_disc"].append(val_disc)
+            # metrics["val_loss"].append(val_loss)
+            # metrics["val_gan"].append(val_gan)
+            # metrics["val_mse"].append(val_mse)
+            # metrics["val_lpips"].append(val_lpips)
+            # metrics["val_entropy"].append(val_entropy)
+            # metrics["val_disc"].append(val_disc)
 
         # log average train and val accuracy to tensorboard
-        epoch_train_loss = torch.as_tensor(metrics["train_loss"])
-        epoch_val_loss = torch.as_tensor(metrics["val_loss"])
-        logger.add_scalar('train_loss', epoch_train_loss, global_step)
-        logger.add_scalar('val_loss', epoch_val_loss, global_step)
+        # epoch_train_loss = torch.as_tensor(metrics["train_loss"])
+        # epoch_val_loss = torch.as_tensor(metrics["val_loss"])
+        logger.add_scalar('train_loss', train_loss, global_step)
+        logger.add_scalar('val_loss', val_loss, global_step)
 
         # add last of the reconstructed images to tensorboard
         grid = torchvision.utils.make_grid(img)
@@ -234,14 +237,16 @@ def train(exp_dir: str = "logs",
         #if epoch == 0 or epoch == num_epoch - 1 or (epoch + 1) % 10 == 0:
         print(
             f"Epoch {epoch + 1:2d} / {num_epoch:2d}: \n"
-            f"train_loss={epoch_train_loss} \n"
-            f"val_loss={epoch_val_loss} \n"
+            f"train_loss={train_loss} \n"
+            f"val_loss={val_loss} \n"
             f"train_mse={train_mse} \n"
             f"val_mse={val_mse} \n"
             f"train_lpips={train_lpips} \n"
             f"val_lpips={val_lpips} \n"
-            f"train_bce={train_bce} \n"
-            f"val_bce={val_bce} \n"
+            f"train_lpips={train_entropy} \n"
+            f"val_lpips={val_entropy} \n"
+            f"train_gan={train_gan} \n"
+            f"val_gan={val_gan} \n"
             f"train_disc={train_disc} \n"
             f"val_disc={val_disc} \n"
         )
