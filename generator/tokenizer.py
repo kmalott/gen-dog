@@ -132,7 +132,7 @@ class BSQTokenizer(torch.nn.Module):
         v = self.down_project(z)
         u = torch.nn.functional.normalize(v, p=2, dim=-1)
         uq = self.diff_sign(u)
-        used_codes = torch.unique(self.encode_int(uq), return_counts=False)
+        used_codes = torch.unique(self.encode_int(uq.detach()), return_counts=False)
         per_sample_entropy, codebook_entropy = self.soft_entropy_loss(v)
         entropy_loss = per_sample_entropy - self.gamma * codebook_entropy
         return uq, entropy_loss, used_codes
