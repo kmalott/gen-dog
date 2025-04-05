@@ -3,13 +3,17 @@ import torchvision
 import torchvision.transforms as transforms
 
 
-def load_data(in_path, img_sz=128, seed=123, train_split=0.95, batch_size=32, save_output=False):
+def load_data(in_path, img_sz=128, seed=123, train_split=0.95, batch_size=32, save_output=False, transform=False):
     # load images from kaggle data into torch dataset
     # apply resizing and cropping to images
     # split into training and testing set
     # return dataloaders
-    transform = transforms.Compose([transforms.Resize(128), transforms.CenterCrop(128),transforms.ToTensor(),])
-    data = torchvision.datasets.ImageFolder(in_path, transform=transform)
+    if transform:
+        transform = transforms.Compose([transforms.Resize(128), transforms.CenterCrop(128),transforms.ToTensor(),])
+        data = torchvision.datasets.ImageFolder(in_path, transform=transform)
+    else:
+        transform = transforms.Compose([transforms.ToTensor()])
+        data = torchvision.datasets.ImageFolder(in_path, transform=transform)
     generator = torch.Generator().manual_seed(seed)
     split = torch.utils.data.random_split(data, [train_split, (1-train_split)], generator=generator)
     train_data = split[0]
