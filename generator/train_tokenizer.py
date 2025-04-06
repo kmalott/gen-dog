@@ -178,7 +178,7 @@ def train(exp_dir: str = "logs",
             # train_fake += gan_fake.item()
             # train_real += gan_real.item()
             # train_gp += gp.item()
-           
+            
             global_step += 1
             i += 1
         # metrics["train_loss"].append(train_loss)
@@ -192,6 +192,7 @@ def train(exp_dir: str = "logs",
         with torch.inference_mode():
             tokenizer.eval()
             # discriminator.eval()
+            cb = torch.tensor([])
 
             for img, label in tqdm(val_data):
                 img, label = img.to(device), label.to(device)
@@ -214,6 +215,9 @@ def train(exp_dir: str = "logs",
                 val_entropy += entropy.item()
                 # val_gan += gan_fake.item() * 0.1
                 # val_disc += total_loss_d.item()
+
+                # track codebook
+                cb = torch.concat((cb, cb_usage))
             # metrics["val_loss"].append(val_loss)
             # metrics["val_gan"].append(val_gan)
             # metrics["val_mse"].append(val_mse)
@@ -222,8 +226,9 @@ def train(exp_dir: str = "logs",
             # metrics["val_disc"].append(val_disc)
 
         # check codebook utilization
-        print(f"Codebook unqiue values: {cb_usage.shape[0]} out of {(2**14)}")
-        print(f"Codebook utilization: {cb_usage.shape[0] / (2**14)}")
+        cb = cb.unique()
+        print(f"Codebook unqiue values: {cb.shape[0]} out of {(2**14)}")
+        print(f"Codebook utilization: {cb.shape[0] / (2**14)}")
 
         # log average train and val accuracy to tensorboard
         # epoch_train_loss = torch.as_tensor(metrics["train_loss"])
