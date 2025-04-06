@@ -192,7 +192,7 @@ def train(exp_dir: str = "logs",
         with torch.inference_mode():
             tokenizer.eval()
             # discriminator.eval()
-            cb = torch.tensor([])
+            cb = torch.tensor([], device=device)
 
             for img, label in tqdm(val_data):
                 img, label = img.to(device), label.to(device)
