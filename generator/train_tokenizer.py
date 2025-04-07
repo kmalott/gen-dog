@@ -36,6 +36,8 @@ def train(exp_dir: str = "logs",
     seed: int = 2024,
     gamma0: float = 1.0,
     gamma: float = 1.0,
+    codebook: int = 14,
+    latent: int = 64,
     **kwargs,
 ):
     if torch.cuda.is_available():
@@ -51,7 +53,7 @@ def train(exp_dir: str = "logs",
     log_dir = Path(exp_dir) / f"{model_name}_{datetime.now().strftime('%m%d_%H%M%S')}"
     logger = tb.SummaryWriter(log_dir)
 
-    tokenizer = BSQTokenizer(latent_dim=64, codebook=14, gamma0=gamma0, gamma=gamma)
+    tokenizer = BSQTokenizer(latent_dim=latent, codebook=codebook, gamma0=gamma0, gamma=gamma)
     tokenizer = tokenizer.to(device)
     # discriminator = Discriminator()
     # discriminator = discriminator.to(device)
@@ -280,6 +282,8 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, default=1024)
     parser.add_argument("--gamma0", type=float, default=1.0)
     parser.add_argument("--gamma", type=float, default=1.0)
+    parser.add_argument("--codebook", type=int, default=14)
+    parser.add_argument("--latent", type=int, default=64)
 
     # pass all arguments to train
     train(**vars(parser.parse_args()))
