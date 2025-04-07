@@ -229,8 +229,8 @@ def train(exp_dir: str = "logs",
 
         # check codebook utilization
         cb = cb.unique()
-        print(f"Codebook unqiue values: {cb.shape[0]} out of {(2**14)}")
-        print(f"Codebook utilization: {cb.shape[0] / (2**14)}")
+        print(f"Codebook unqiue values: {cb.shape[0]} / {(2**codebook)}")
+        print(f"Codebook utilization: {cb.shape[0] / (2**codebook)}")
 
         # log average train and val accuracy to tensorboard
         # epoch_train_loss = torch.as_tensor(metrics["train_loss"])
