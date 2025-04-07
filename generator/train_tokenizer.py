@@ -79,7 +79,7 @@ def train(exp_dir: str = "logs",
     #            }
     
     # warmup loop
-    warmup = True
+    warmup = False
     if warmup:
         for e in range(0,5):
             i = 0
@@ -102,8 +102,8 @@ def train(exp_dir: str = "logs",
         logger.add_image('images_reconstructed', grid, global_step)
     
     # initialize weighed averages (alpha) for LeCAM reg. 
-    # alpha_f = 100
-    # alpha_r = 100
+    alpha_f = 100
+    alpha_r = 100
 
     # training loop
     for epoch in range(num_epoch):
@@ -140,26 +140,26 @@ def train(exp_dir: str = "logs",
             img_hat = img_hat.detach()
 
             # WGAN Loss
-            gan_fake = discriminator(img_hat).mean()
-            gan_real = discriminator(img).mean()
-            gp = calc_gradient_penalty(discriminator, img, img_hat, device)
-            total_loss_d = gan_fake - gan_real + (10*gp) 
-            optimizer_d.zero_grad()
-            total_loss_d.backward()
-            optimizer_d.step()
-
-            # LeCAM Reg. Loss
-            # # dis_fake = discriminator(img_hat)
-            # # dis_real = discriminator(img)
-            # # gan_fake = F.relu(1. + dis_fake).mean()
-            # # gan_real = F.relu(1. - dis_real).mean()
-            # # alpha_f = (0.99*alpha_f) + (0.01*dis_fake.mean().item())
-            # # alpha_r = (0.99*alpha_r) + (0.01*dis_real.mean().item())
-            # # reg = reg = torch.mean(F.relu(dis_real - alpha_f).pow(2)) + torch.mean(F.relu(alpha_r - dis_fake).pow(2))
-            # # total_loss_d = (0.3*reg) - (gan_real + gan_fake)
+            # gan_fake = discriminator(img_hat).mean()
+            # gan_real = discriminator(img).mean()
+            # gp = calc_gradient_penalty(discriminator, img, img_hat, device)
+            # total_loss_d = gan_fake - gan_real + (10*gp) 
             # optimizer_d.zero_grad()
             # total_loss_d.backward()
             # optimizer_d.step()
+
+            # LeCAM Reg. Loss
+            dis_fake = discriminator(img_hat)
+            dis_real = discriminator(img)
+            gan_fake = F.relu(1. + dis_fake).mean()
+            gan_real = F.relu(1. - dis_real).mean()
+            alpha_f = (0.99*alpha_f) + (0.01*dis_fake.mean().item())
+            alpha_r = (0.99*alpha_r) + (0.01*dis_real.mean().item())
+            reg = torch.mean(F.relu(dis_real - alpha_f).pow(2)) + torch.mean(F.relu(alpha_r - dis_fake).pow(2))
+            total_loss_d = (0.3*reg) - (gan_real + gan_fake)
+            optimizer_d.zero_grad()
+            total_loss_d.backward()
+            optimizer_d.step()
 
             if i % 10 == 0:
                 # train tokenizer (generator)
@@ -181,7 +181,7 @@ def train(exp_dir: str = "logs",
             train_disc += total_loss_d.item()
             train_fake += gan_fake.item()
             train_real += gan_real.item()
-            train_gp += gp.item()
+            # train_gp += gp.item()
             
             global_step += 1
             i += 1
@@ -200,11 +200,19 @@ def train(exp_dir: str = "logs",
 
             for img, label in tqdm(val_data):
                 img, label = img.to(device), label.to(device)
-                # validate discriminator
+                # validate discriminator WGAN
+                # img_hat, entropy, cb_usage = tokenizer(img)
+                # gan_fake = discriminator(img_hat).mean()
+                # gan_real = discriminator(img).mean()
+                # total_loss_d = gan_fake - gan_real
+
+                # validate discriminator LeCam Reg.
                 img_hat, entropy, cb_usage = tokenizer(img)
-                gan_fake = discriminator(img_hat).mean()
-                gan_real = discriminator(img).mean()
-                total_loss_d = gan_fake - gan_real
+                dis_fake = discriminator(img_hat)
+                dis_real = discriminator(img)
+                gan_fake = F.relu(1. + dis_fake).mean()
+                gan_real = F.relu(1. - dis_real).mean()
+                total_loss_d = (0.3*reg) - (gan_real + gan_fake)
 
                 # validate tokenizer (generator)
                 mse = mse_loss(img_hat, img)
