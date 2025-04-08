@@ -38,6 +38,7 @@ def train(exp_dir: str = "logs",
     gamma: float = 1.0,
     codebook: int = 14,
     latent: int = 64,
+    lc: float = 0.3,
     **kwargs,
 ):
     if torch.cuda.is_available():
@@ -130,7 +131,7 @@ def train(exp_dir: str = "logs",
 
         train_fake = torch.tensor([0.0])
         train_real = torch.tensor([0.0])
-        train_gp = torch.tensor([0.0])
+        train_reg = torch.tensor([0.0])
 
         i = 0
         for img, label in tqdm(train_data):
@@ -155,33 +156,33 @@ def train(exp_dir: str = "logs",
             gan_real = F.relu(1. - dis_real).mean()
             alpha_f = (0.99*alpha_f) + (0.01*dis_fake.mean().item())
             alpha_r = (0.99*alpha_r) + (0.01*dis_real.mean().item())
-            reg = torch.mean(F.relu(dis_real - alpha_f).pow(2)) + torch.mean(F.relu(alpha_r - dis_fake).pow(2))
-            total_loss_d = (0.3*reg) - (gan_real + gan_fake)
+            reg = lc * torch.mean(F.relu(dis_real - alpha_f).pow(2)) + torch.mean(F.relu(alpha_r - dis_fake).pow(2))
+            total_loss_d = reg + gan_real + gan_fake
             optimizer_d.zero_grad()
             total_loss_d.backward()
             optimizer_d.step()
 
-            if i % 10 == 0:
-                # train tokenizer (generator)
-                img_hat, entropy, _ = tokenizer(img)
-                mse = mse_loss(img_hat, img)
-                lpips = lpips_loss(img_hat, img)
-                gan = discriminator(img_hat).mean()
-                total_loss_t = (10*mse) - (0.1*gan) + (0.5*lpips.sum()) + (0.1*entropy)
-                # total_loss_t = (10*mse) + (0.5*lpips.sum()) + (0.1*entropy)
-                optimizer_t.zero_grad()
-                total_loss_t.backward()
-                optimizer_t.step()
-                train_loss += total_loss_t.item()
-                train_mse += mse.item() * 10
-                train_lpips += lpips.sum().item() * 0.5
-                train_entropy += entropy.item()
-                train_gan += gan.item() * 0.1
+            # if i % 10 == 0:
+            # train tokenizer (generator)
+            img_hat, entropy, _ = tokenizer(img)
+            mse = mse_loss(img_hat, img)
+            lpips = lpips_loss(img_hat, img)
+            gan = discriminator(img_hat).mean()
+            total_loss_t = (10*mse) - (0.1*gan) + (0.5*lpips.sum()) + (0.1*entropy)
+            # total_loss_t = (10*mse) + (0.5*lpips.sum()) + (0.1*entropy)
+            optimizer_t.zero_grad()
+            total_loss_t.backward()
+            optimizer_t.step()
+            train_loss += total_loss_t.item()
+            train_mse += mse.item() * 10
+            train_lpips += lpips.sum().item() * 0.5
+            train_entropy += entropy.item()
+            train_gan += gan.item() * 0.1
 
             train_disc += total_loss_d.item()
             train_fake += gan_fake.item()
             train_real += gan_real.item()
-            # train_gp += gp.item()
+            train_reg += reg.item()
             
             global_step += 1
             i += 1
@@ -212,7 +213,7 @@ def train(exp_dir: str = "logs",
                 dis_real = discriminator(img)
                 gan_fake = F.relu(1. + dis_fake).mean()
                 gan_real = F.relu(1. - dis_real).mean()
-                total_loss_d = (0.3*reg) - (gan_real + gan_fake)
+                total_loss_d = reg + gan_real + gan_fake
 
                 # validate tokenizer (generator)
                 mse = mse_loss(img_hat, img)
@@ -294,6 +295,7 @@ if __name__ == "__main__":
     parser.add_argument("--gamma", type=float, default=1.0)
     parser.add_argument("--codebook", type=int, default=14)
     parser.add_argument("--latent", type=int, default=64)
+    parser.add_argument("--lc", type=float, default=0.3)
 
     # pass all arguments to train
     train(**vars(parser.parse_args()))
