@@ -113,7 +113,7 @@ def train(exp_dir: str = "logs",
         #     metrics[key].clear()
 
         tokenizer.train()
-        # discriminator.train()
+        discriminator.train()
 
         # reset losses
         train_loss = torch.tensor([0.0])
@@ -196,7 +196,7 @@ def train(exp_dir: str = "logs",
         # disable gradient computation and switch to evaluation mode
         with torch.inference_mode():
             tokenizer.eval()
-            # discriminator.eval()
+            discriminator.eval()
             cb = torch.tensor([], device=device)
 
             for img, label in tqdm(val_data):
