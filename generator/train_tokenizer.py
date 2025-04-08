@@ -31,6 +31,7 @@ def calc_gradient_penalty(netD, real_data, fake_data, device):
 def train(exp_dir: str = "logs",
     model_name: str = "BSQTokenizer",
     num_epoch: int = 5,
+    warmup_epoch: int = 0,
     lr: float = 1e-3,
     batch_size: int = 1024,
     seed: int = 2024,
@@ -80,9 +81,8 @@ def train(exp_dir: str = "logs",
     #            }
     
     # warmup loop
-    warmup = False
-    if warmup:
-        for e in range(0,5):
+    if warmup_epoch > 0:
+        for e in range(0, warmup_epoch):
             i = 0
             tokenizer.train()
             for img, label in tqdm(train_data):
@@ -96,7 +96,7 @@ def train(exp_dir: str = "logs",
                 optimizer_t.step()
                 i += 1
 
-        # log imgs after warmup
+        # log imgs after last warmup
         grid = torchvision.utils.make_grid(img)
         logger.add_image('images', grid, global_step)
         grid = torchvision.utils.make_grid(img_hat)
@@ -275,7 +275,7 @@ def train(exp_dir: str = "logs",
         print(
             f"Real Img Loss: {train_real} \n"
             f"Fake Img Loss: {train_fake} \n"
-            f"Gradient Penalty: {train_gp}"
+            f"Gradient Penalty: {train_reg}"
         )
 
     # save a copy of model weights in the log directory
@@ -288,6 +288,7 @@ if __name__ == "__main__":
 
     parser.add_argument("--exp_dir", type=str, default="logs")
     parser.add_argument("--num_epoch", type=int, default=5)
+    parser.add_argument("--warmup_epoch", type=int, default=0)
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--seed", type=int, default=2024)
     parser.add_argument("--batch_size", type=int, default=1024)
