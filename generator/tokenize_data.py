@@ -25,12 +25,14 @@ def tokenize(tokenizer: str,
             model.eval()
             for img, label in tqdm(train_data):
                 img, label = img.to(device), label.to(device)
-                img_token = model.encode_int(img)
+                latent_img, _, _ = model.encode(img)
+                img_token = model.encode_int(latent_img)
                 compressed_imgs_train.append(img_token)
 
             for img, label in tqdm(val_data):
                 img, label = img.to(device), label.to(device)
-                img_token = model.encode_int(img)
+                latent_img, _, _ = model.encode(img)
+                img_token = model.encode_int(latent_img)
                 compressed_imgs_val.append(img_token)
 
     imgs_train = torch.stack(compressed_imgs_train)
