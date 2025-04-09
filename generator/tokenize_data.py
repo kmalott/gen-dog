@@ -17,7 +17,7 @@ def tokenize(tokenizer: str,
     output_train = Path(output_train)
     output_val = Path(output_val)
 
-    train_data, val_data = load_data('./rawdata/Images/', batch_size=1, save_output=False)
+    train_data, val_data = load_data('./data/', batch_size=1, save_output=False)
 
     compressed_imgs_train = []
     compressed_imgs_val = []
@@ -59,7 +59,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--tokenzier", type=str, default="BSQTokenzier.th")
-    parser.add_argument("--output_train", type=str, default="data/train_tokenized.pth")
-    parser.add_argument("--output_val", type=str, default="data/val_tokenized.pth")
+    parser.add_argument("--output_train", type=str, default="tokenized_data/train_tokenized.pth")
+    parser.add_argument("--output_val", type=str, default="tokenized_data/val_tokenized.pth")
 
     tokenize(**vars(parser.parse_args()))
