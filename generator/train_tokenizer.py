@@ -279,7 +279,7 @@ def train(exp_dir: str = "logs",
         )
 
     # save a copy of model weights in the log directory
-    torch.save(tokenizer.state_dict(), log_dir / f"{model_name}.th")
+    torch.save(tokenizer, log_dir / f"{model_name}.th")
     print(f"Model saved to {log_dir / f'{model_name}.th'}")
 
 
