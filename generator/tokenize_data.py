@@ -12,7 +12,7 @@ def tokenize(tokenizer: str,
              output_train: str, 
              output_val: str):
     device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
-    model = torch.load(Path(tokenizer), weights_only=False).to(device)
+    model = torch.load(Path(tokenizer), weights_only=False, map_location=torch.device('cpu')).to(device)
 
     output_train = Path(output_train)
     output_val = Path(output_val)
@@ -60,7 +60,7 @@ def tokenize(tokenizer: str,
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--tokenzier", type=str, default="BSQTokenzier.th")
+    parser.add_argument("--tokenizer", type=str, default="BSQTokenizer.th")
     parser.add_argument("--output_train", type=str, default="tokenized_data/train_tokenized.pth")
     parser.add_argument("--output_val", type=str, default="tokenized_data/val_tokenized.pth")
 
