@@ -2,6 +2,24 @@ import torch
 import torchvision
 import torchvision.transforms as transforms
 
+from pathlib import Path
+
+DATASET_PATH = Path(__file__).parent.parent / "data"
+
+class TokenDataset(torch.utils.data.TensorDataset):
+    def __init__(self, split: str):
+        tensor_path = DATASET_PATH / f"{split}_tokenized.pth"
+        if not tensor_path.exists():
+            raise FileNotFoundError(
+                f"Tokenized dataset not found at {tensor_path}. Create it following the assignment instructions."
+            )
+        self.data = torch.load(tensor_path, weights_only=False)
+
+    def __getitem__(self, idx: int) -> torch.Tensor:
+        return torch.tensor(self.data[idx], dtype=torch.long)
+
+    def __len__(self) -> int:
+        return len(self.data)
 
 def load_data(in_path, img_sz=128, seed=123, train_split=0.95, batch_size=32, save_output=False, transform=False):
     # load images from kaggle data into torch dataset
