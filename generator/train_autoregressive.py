@@ -22,6 +22,7 @@ def train(exp_dir: str = "logs",
     codebook: int = 14,
     latent: int = 1024,
     nhead: int = 8,
+    nlayer: int = 4,
     **kwargs,
 ):
     if torch.cuda.is_available():
@@ -37,7 +38,7 @@ def train(exp_dir: str = "logs",
     log_dir = Path(exp_dir) / f"{model_name}_{datetime.now().strftime('%m%d_%H%M%S')}"
     logger = tb.SummaryWriter(log_dir)
 
-    autoregressive = AutoregressiveModel(latent, codebook, nhead)
+    autoregressive = AutoregressiveModel(latent, codebook, nhead, nlayer)
     autoregressive.to(device)
 
     # load data loaders
@@ -106,6 +107,7 @@ if __name__ == "__main__":
     parser.add_argument("--codebook", type=int, default=14)
     parser.add_argument("--latent", type=int, default=1024)
     parser.add_argument("--nhead", type=int, default=8)
+    parser.add_argument("--nlayer", type=int, default=4)
 
     # pass all arguments to train
     train(**vars(parser.parse_args()))
