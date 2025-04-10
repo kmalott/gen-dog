@@ -1,12 +1,12 @@
 import torch
 
 class AutoregressiveModel(torch.nn.Module):
-    def __init__(self, d_latent: int = 1024, codebook: int = 14, nhead: int = 8, ):
+    def __init__(self, d_latent: int = 1024, codebook: int = 14, nhead: int = 8, num_layers: int = 4):
         super().__init__()
         self.n_tokens = 2**codebook
         self.embed = torch.nn.Embedding(num_embeddings=self.n_tokens, embedding_dim=self.n_tokens)
         decoder_layer = torch.nn.TransformerEncoderLayer(d_model=self.n_tokens, nhead=nhead, dim_feedforward=d_latent, batch_first=True)
-        self.decoder = torch.nn.TransformerEncoder(decoder_layer, num_layers=1)
+        self.decoder = torch.nn.TransformerEncoder(decoder_layer, num_layers=num_layers)
         self.pad = torch.nn.ConstantPad1d((1, 0), 0)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
