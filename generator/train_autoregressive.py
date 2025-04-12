@@ -34,53 +34,39 @@ def train(exp_dir: str = "logs",
     # set random seed so each run is deterministic
     torch.manual_seed(seed)
     np.random.seed(seed)
-    print("seeds")
 
     # directory with timestamp to save tensorboard logs and model checkpoints
     log_dir = Path(exp_dir) / f"{model_name}_{datetime.now().strftime('%m%d_%H%M%S')}"
     logger = tb.SummaryWriter(log_dir)
-    print("logger")
 
-    print(latent)
-    print(codebook)
-    print(nhead)
-    print(nlayer)
     autoregressive = AutoregressiveModel(latent, d_model, codebook, nhead, nlayer)
-    print("model initiated")
     autoregressive.to(device)
-    print("model done")
     # load data loaders
     train_data = torch.utils.data.DataLoader(TokenDataset("train"), batch_size=batch_size, num_workers=4, shuffle=True)
     val_data = torch.utils.data.DataLoader(TokenDataset("val"), batch_size=batch_size, num_workers=4, shuffle=False)
-    print("data done")
     # create optimizer
     optimizer = torch.optim.AdamW(params=autoregressive.parameters(), lr=lr)
 
     global_step = 0
     # training loop
     for epoch in range(num_epoch):
-        print("in epoch loop")
         autoregressive.train()
         # reset losses
         train_loss = torch.tensor([0.0])
         val_loss = torch.tensor([0.0])
         for x in tqdm(train_data):
-            print("in training loop")
             x = x.to(device)
             x_hat = autoregressive(x)
-            print("preds done")
             loss = (
                     F.cross_entropy(x_hat.reshape(-1, x_hat.shape[-1]), x.reshape(-1), reduction="sum")
                     / math.log(2)
                     / x.shape[0]
                 )
-            print("loss done")
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
             train_loss += loss.item()
             global_step += 1
-            break
 
         # disable gradient computation and switch to evaluation mode
         with torch.inference_mode():
@@ -94,7 +80,6 @@ def train(exp_dir: str = "logs",
                     / x.shape[0]
                 )
                 val_loss += loss.item()
-                break
 
         # log average train and val accuracy to tensorboard
         logger.add_scalar('train_loss', train_loss, global_step)
@@ -120,7 +105,7 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, default=1024)
     parser.add_argument("--codebook", type=int, default=14)
     parser.add_argument("--latent", type=int, default=1024)
-    parser.add_argument("--latent", type=int, default=512)
+    parser.add_argument("--d_model", type=int, default=512)
     parser.add_argument("--nhead", type=int, default=8)
     parser.add_argument("--nlayer", type=int, default=4)
 
