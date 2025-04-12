@@ -72,7 +72,7 @@ def train(exp_dir: str = "logs",
         with torch.inference_mode():
             autoregressive.eval()
             for x in tqdm(val_data):
-                x = x.to(device)
+                x = x.squeeze(1).to(device)
                 x_hat = autoregressive(x)
                 loss = (
                     F.cross_entropy(x_hat.reshape(-1, x_hat.shape[-1]), x.reshape(-1), reduction="sum")
