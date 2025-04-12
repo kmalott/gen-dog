@@ -1,7 +1,7 @@
 import torch
 
 class AutoregressiveModel(torch.nn.Module):
-    def __init__(self, d_latent: int = 1024, codebook: int = 14, nhead: int = 8, num_layers: int = 4):
+    def __init__(self, d_latent: int = 1024, codebook: int = 14, nhead: int = 4, num_layers: int = 1):
         super().__init__()
         self.n_tokens = 2**codebook
         self.embed = torch.nn.Embedding(num_embeddings=self.n_tokens, embedding_dim=self.n_tokens)
@@ -57,3 +57,19 @@ class AutoregressiveModel(torch.nn.Module):
         y_hat = y_hat[:, 1:]
         y_hat = y_hat.reshape(-1, h, w)
         return y_hat.contiguous()
+    
+def debug_model(batch_size: int = 1):
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # sample_batch = torch.rand(batch_size, 32, 32).to(device)
+    sample_batch = torch.randint(0, 1024, (batch_size, 32, 32))
+
+    print(f"Input shape: {sample_batch.shape}")
+
+    model = AutoregressiveModel()
+    output = model(sample_batch)
+
+    print(f"Output shape: {output.shape}")
+
+
+if __name__ == "__main__":
+    debug_model()
