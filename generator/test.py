@@ -14,10 +14,13 @@ def test_ar_forward(tokenizer, autoregressive):
 
     for x in tqdm(val_data):
         x = x.to(device)
+        print(x.shape)
         x_hat = ar_model(x)
         print(x_hat.shape)
-        x_hat = x_hat.squeeze(0).view(-1, 2**14).cpu()
+        x_hat = x_hat.squeeze().view(-1, 2**14).cpu()
+        print(x_hat.shape)
         x_hat = torch.multinomial(x_hat, num_samples=1)
+        print(x_hat.shape)
         x_hat = x_hat.view(32, 32, -1).to(device)
         print(x_hat.shape)
         break
