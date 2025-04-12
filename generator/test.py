@@ -13,7 +13,7 @@ def test_ar_forward(tokenizer, autoregressive):
     val_data = torch.utils.data.DataLoader(TokenDataset("val"), batch_size=1, num_workers=4, shuffle=False)
 
     for x in tqdm(val_data):
-        x = x.to(device)
+        x = x.squeeze(1).to(device)
         print(x.shape)
         x_hat = ar_model(x)
         print(x_hat.shape)
