@@ -15,18 +15,18 @@ def generation(tokenizer: Path, autoregressive: Path, n_images: int, output: Pat
     """
     output = Path(output)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    tk_model = torch.load(tokenizer, weights_only=False).to(device)
+    tk_model = torch.load(tokenizer, weights_only=False, map_location=torch.device(device)).to(device)
     ar_model = torch.load(autoregressive, weights_only=False, map_location=torch.device(device)).to(device)
 
-    dummy_x = tk_model.encode(torch.zeros(1, 128, 128, 3, device=device))
-    dummy_index = tk_model.encode_index(dummy_x)
+    dummy_x, _, _ = tk_model.encode(torch.zeros(1, 3, 128, 128, device=device))
+    dummy_index = tk_model.encode_int(dummy_x)
     _, h, w = dummy_index.shape
 
     generations = ar_model.generate(n_images, h, w, device=device)
-    images = tk_model.decode_index(generations).cpu()
+    images = tk_model.decode(tk_model.decode_int(generations)).cpu().transpose(1,3)
     np_images = (255 * (images).clip(0, 1)).to(torch.uint8).numpy()
-    for idx, im in enumerate(np_images):
-        Image.fromarray(im).save(output / f"generation_{idx}.png")
+    for idx in range(0, np_images.shape[0]):
+        Image.fromarray(np_images[idx,:,:,:], 'RGB').save(output / f"generation_{idx}.png")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
