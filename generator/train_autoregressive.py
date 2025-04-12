@@ -21,6 +21,7 @@ def train(exp_dir: str = "logs",
     seed: int = 2024,
     codebook: int = 14,
     latent: int = 1024,
+    d_model: int = 512,
     nhead: int = 8,
     nlayer: int = 4,
     **kwargs,
@@ -44,7 +45,7 @@ def train(exp_dir: str = "logs",
     print(codebook)
     print(nhead)
     print(nlayer)
-    autoregressive = AutoregressiveModel(latent, codebook, nhead, nlayer)
+    autoregressive = AutoregressiveModel(latent, d_model, codebook, nhead, nlayer)
     print("model initiated")
     autoregressive.to(device)
     print("model done")
@@ -119,6 +120,7 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, default=1024)
     parser.add_argument("--codebook", type=int, default=14)
     parser.add_argument("--latent", type=int, default=1024)
+    parser.add_argument("--latent", type=int, default=512)
     parser.add_argument("--nhead", type=int, default=8)
     parser.add_argument("--nlayer", type=int, default=4)
 

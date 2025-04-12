@@ -1,12 +1,13 @@
 import torch
 
 class AutoregressiveModel(torch.nn.Module):
-    def __init__(self, d_latent: int = 1024, codebook: int = 14, nhead: int = 4, num_layers: int = 1):
+    def __init__(self, d_latent: int = 1024, d_model: int = 512, codebook: int = 14, nhead: int = 1, num_layers: int = 1):
         super().__init__()
         self.n_tokens = 2**codebook
-        self.embed = torch.nn.Embedding(num_embeddings=self.n_tokens, embedding_dim=self.n_tokens)
-        decoder_layer = torch.nn.TransformerEncoderLayer(d_model=self.n_tokens, nhead=nhead, dim_feedforward=d_latent, batch_first=True)
+        self.embed = torch.nn.Embedding(num_embeddings=self.n_tokens, embedding_dim=d_model)
+        decoder_layer = torch.nn.TransformerEncoderLayer(d_model=d_model, nhead=nhead, dim_feedforward=d_latent, batch_first=True)
         self.decoder = torch.nn.TransformerEncoder(decoder_layer, num_layers=num_layers)
+        self.token_head = torch.nn.Linear(d_model, self.n_tokens)
         self.pad = torch.nn.ConstantPad1d((1, 0), 0)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -22,14 +23,16 @@ class AutoregressiveModel(torch.nn.Module):
         seq_len = x.shape[1]
         # print(x.shape) # [B, seq_len]
         x = self.embed(x)
-        # print(x.shape) # [B, seq_len, n_tokens]
+        # print(x.shape) # [B, seq_len, d_model]
         x = self.pad(x.permute(0,2,1))
         x = x.permute(0,2,1)
-        # print(x.shape) # [B, seq_len, n_tokens]
+        # print(x.shape) # [B, seq_len, d_model]
         # decoder expects [batch, seq_len, d_model]
         x = self.decoder(x, torch.nn.Transformer.generate_square_subsequent_mask((seq_len+1), device=self.device), is_causal=True)
-        # print(x.shape) # [B, seq_len+1, n_tokens]
+        # print(x.shape) # [B, seq_len+1, d_model]
         x = x[:,:-1,:] # remove padding
+        # print(x.shape) # [B, seq_len, d_model]
+        x = self.token_head(x)
         # print(x.shape) # [B, seq_len, n_tokens]
         x = x.contiguous().view(-1, h, w, self.n_tokens)
         # print(x.shape) # [B, 32, 32, n_tokens]
