@@ -40,7 +40,12 @@ def train(exp_dir: str = "logs",
     logger = tb.SummaryWriter(log_dir)
     print("logger")
 
+    print(latent)
+    print(codebook)
+    print(nhead)
+    print(nlayer)
     autoregressive = AutoregressiveModel(latent, codebook, nhead, nlayer)
+    print("model initiated")
     autoregressive.to(device)
     print("model done")
     # load data loaders
