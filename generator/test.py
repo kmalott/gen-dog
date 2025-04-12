@@ -16,7 +16,9 @@ def test_ar_forward(tokenizer, autoregressive):
         x = x.to(device)
         x_hat = ar_model(x)
         print(x_hat.shape)
+        x_hat = x_hat.squeeze(0).view(-1, 2**14)
         x_hat = torch.multinomial(x_hat, num_samples=1)
+        x_hat = x_hat.view(32, 32, -1)
         print(x_hat.shape)
         break
 
