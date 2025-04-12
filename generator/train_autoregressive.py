@@ -68,6 +68,7 @@ def train(exp_dir: str = "logs",
             optimizer.step()
             train_loss += loss.item()
             global_step += 1
+            break
 
         # disable gradient computation and switch to evaluation mode
         with torch.inference_mode():
@@ -81,6 +82,7 @@ def train(exp_dir: str = "logs",
                     / x.shape[0]
                 )
                 val_loss += loss.item()
+                break
 
         # log average train and val accuracy to tensorboard
         logger.add_scalar('train_loss', train_loss, global_step)
