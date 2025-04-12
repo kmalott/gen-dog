@@ -26,10 +26,10 @@ def test_ar_forward(tokenizer, autoregressive):
     for idx in range(0, np_images.shape[0]):
         Image.fromarray(np_images[idx,:,:,:], 'RGB').save("original.png")
 
-    # images = tk_model.decode(tk_model.decode_int(x_hat)).cpu().transpose(1,3)
-    # np_images = (255 * (images).clip(0, 1)).to(torch.uint8).numpy()
-    # for idx in range(0, np_images.shape[0]):
-    #     Image.fromarray(np_images[idx,:,:,:], 'RGB').save("reconstructed.png")
+    images = tk_model.decode(tk_model.decode_int(x_hat)).cpu().transpose(1,3)
+    np_images = (255 * (images).clip(0, 1)).to(torch.uint8).numpy()
+    for idx in range(0, np_images.shape[0]):
+        Image.fromarray(np_images[idx,:,:,:], 'RGB').save("reconstructed.png")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
