@@ -4,7 +4,7 @@ import torchvision.transforms as transforms
 
 from pathlib import Path
 
-DATASET_PATH = Path(__file__).parent.parent / "data"
+DATASET_PATH = Path(__file__).parent.parent / "tokenized_data"
 
 class TokenDataset(torch.utils.data.TensorDataset):
     def __init__(self, split: str):
