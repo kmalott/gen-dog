@@ -14,21 +14,21 @@ def test_ar_forward(tokenizer, autoregressive):
 
     for x in tqdm(val_data):
         x = x.squeeze(1).to(device)
-        print(x.shape)
+        print(x.shape) # [1, 32, 32]
         x_hat = ar_model(x)
-        print(x_hat.shape)
+        print(x_hat.shape) # [1, 32, 32, 16384]
         x_hat = x_hat.squeeze().view(-1, 2**14).cpu()
-        print(x_hat.shape)
+        print(x_hat.shape) # [1024, 16384]
         x_hat = torch.nan_to_num(x_hat, 0.0)
         x_hat = x_hat.clip(0, 2**14)
         x_hat = torch.multinomial(x_hat, num_samples=1)
-        print(x_hat.shape)
-        x_hat = x_hat.view(32, 32, -1).to(device)
-        print(x_hat.shape)
+        print(x_hat.shape) # [1024, 1]
+        x_hat = x_hat.view(-1, 32, 32).to(device)
+        print(x_hat.shape) # [1, 32, 32]
         break
 
     # save results as imgs
-    images = tk_model.decode(tk_model.decode_int(x.squeeze(0))).cpu().transpose(1,3)
+    images = tk_model.decode(tk_model.decode_int(x)).cpu().transpose(1,3)
     np_images = (255 * (images).clip(0, 1)).to(torch.uint8).numpy()
     for idx in range(0, np_images.shape[0]):
         Image.fromarray(np_images[idx,:,:,:], 'RGB').save("original.png")
