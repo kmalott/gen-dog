@@ -52,6 +52,7 @@ def train(exp_dir: str = "logs",
     global_step = 0
     # training loop
     for epoch in range(num_epoch):
+        global_step = 0
         autoregressive.train()
         # reset losses
         train_loss = torch.tensor([0.0])
@@ -71,7 +72,8 @@ def train(exp_dir: str = "logs",
             global_step += 1
             if global_step > 10:
                 break
-        train_loss /= len(train_token)
+        # train_loss /= len(train_token)
+        train_loss /= 320
 
         # # disable gradient computation and switch to evaluation mode
         # with torch.inference_mode():
