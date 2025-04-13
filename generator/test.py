@@ -19,6 +19,8 @@ def test_ar_forward(tokenizer, autoregressive):
         print(x_hat.shape)
         x_hat = x_hat.squeeze().view(-1, 2**14).cpu()
         print(x_hat.shape)
+        x_hat = torch.nan_to_num(x_hat, 0.0)
+        x_hat = x_hat.clip(0, 2**14)
         x_hat = torch.multinomial(x_hat, num_samples=1)
         print(x_hat.shape)
         x_hat = x_hat.view(32, 32, -1).to(device)
