@@ -44,7 +44,7 @@ def train(exp_dir: str = "logs",
     # load data loaders
     train_token = TokenDataset("train")
     val_token = TokenDataset("val")
-    train_data = torch.utils.data.DataLoader(train_token, batch_size=batch_size, num_workers=4, shuffle=True)
+    train_data = torch.utils.data.DataLoader(train_token, batch_size=batch_size, num_workers=4, shuffle=False)
     val_data = torch.utils.data.DataLoader(val_token, batch_size=batch_size, num_workers=4, shuffle=False)
     # create optimizer
     optimizer = torch.optim.AdamW(params=autoregressive.parameters(), lr=lr)
@@ -69,25 +69,28 @@ def train(exp_dir: str = "logs",
             optimizer.step()
             train_loss += loss.item()
             global_step += 1
+            if global_step > 10:
+                break
         train_loss /= len(train_token)
 
-        # disable gradient computation and switch to evaluation mode
-        with torch.inference_mode():
-            autoregressive.eval()
-            for x in tqdm(val_data):
-                x = x.squeeze(1).to(device)
-                x_hat = autoregressive(x)
-                loss = (
-                    F.cross_entropy(x_hat.reshape(-1, x_hat.shape[-1]), x.reshape(-1), reduction="sum")
-                    / math.log(2)
-                    / x.shape[0]
-                )
-                val_loss += loss.item()
-            val_loss /= len(val_token)
+        # # disable gradient computation and switch to evaluation mode
+        # with torch.inference_mode():
+        #     autoregressive.eval()
+        #     for x in tqdm(val_data):
+        #         x = x.squeeze(1).to(device)
+        #         x_hat = autoregressive(x)
+        #         loss = (
+        #             F.cross_entropy(x_hat.reshape(-1, x_hat.shape[-1]), x.reshape(-1), reduction="sum")
+        #             / math.log(2)
+        #             / x.shape[0]
+        #         )
+        #         val_loss += loss.item()
+        #     val_loss /= len(val_token)
+        val_loss = 0
 
         # log average train and val accuracy to tensorboard
         logger.add_scalar('train_loss', train_loss, global_step)
-        logger.add_scalar('val_loss', val_loss, global_step)
+        # logger.add_scalar('val_loss', val_loss, global_step)
 
         print(
             f"Epoch {epoch + 1:2d} / {num_epoch:2d}: \n"

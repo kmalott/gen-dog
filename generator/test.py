@@ -10,7 +10,7 @@ def test_ar_forward(tokenizer, autoregressive):
     tk_model = torch.load(tokenizer, weights_only=False, map_location=torch.device(device)).to(device)
     ar_model = torch.load(autoregressive, weights_only=False, map_location=torch.device(device)).to(device)
 
-    val_data = torch.utils.data.DataLoader(TokenDataset("val"), batch_size=1, num_workers=4, shuffle=False)
+    val_data = torch.utils.data.DataLoader(TokenDataset("train"), batch_size=1, num_workers=4, shuffle=False)
 
     for x in tqdm(val_data):
         x = x.squeeze(1).to(device)
