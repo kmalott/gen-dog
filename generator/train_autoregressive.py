@@ -69,6 +69,16 @@ def train(exp_dir: str = "logs",
             loss.backward()
             optimizer.step()
             train_loss += loss.item()
+
+            if epoch == 0 and global_step == 0:
+                from PIL import Image
+                tk_model = torch.load("../BSQTokenizer.th", weights_only=False, map_location=torch.device(device)).to(device)
+                images = tk_model.decode(tk_model.decode_int(x)).cpu().transpose(1,3)
+                np_images = (255 * (images).clip(0, 1)).to(torch.uint8).numpy()
+                for idx in range(0, np_images.shape[0]):
+                    Image.fromarray(np_images[idx,:,:,:], 'RGB').save("original.png")
+                tk_model = tk_model.cpu()
+
             global_step += 1
             if global_step > 10:
                 break
