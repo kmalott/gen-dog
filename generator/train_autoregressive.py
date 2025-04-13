@@ -42,8 +42,10 @@ def train(exp_dir: str = "logs",
     autoregressive = AutoregressiveModel(latent, d_model, codebook, nhead, nlayer)
     autoregressive.to(device)
     # load data loaders
-    train_data = torch.utils.data.DataLoader(TokenDataset("train"), batch_size=batch_size, num_workers=4, shuffle=True)
-    val_data = torch.utils.data.DataLoader(TokenDataset("val"), batch_size=batch_size, num_workers=4, shuffle=False)
+    train_token = TokenDataset("train")
+    val_token = TokenDataset("val")
+    train_data = torch.utils.data.DataLoader(train_token, batch_size=batch_size, num_workers=4, shuffle=True)
+    val_data = torch.utils.data.DataLoader(val_token, batch_size=batch_size, num_workers=4, shuffle=False)
     # create optimizer
     optimizer = torch.optim.AdamW(params=autoregressive.parameters(), lr=lr)
 
@@ -67,6 +69,7 @@ def train(exp_dir: str = "logs",
             optimizer.step()
             train_loss += loss.item()
             global_step += 1
+        train_loss /= len(train_token)
 
         # disable gradient computation and switch to evaluation mode
         with torch.inference_mode():
@@ -80,6 +83,7 @@ def train(exp_dir: str = "logs",
                     / x.shape[0]
                 )
                 val_loss += loss.item()
+            val_loss /= len(val_token)
 
         # log average train and val accuracy to tensorboard
         logger.add_scalar('train_loss', train_loss, global_step)
