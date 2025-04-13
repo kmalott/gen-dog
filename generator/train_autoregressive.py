@@ -83,7 +83,7 @@ def train(exp_dir: str = "logs",
             if global_step > 10:
                 break
         # train_loss /= len(train_token)
-        train_loss /= 320
+        train_loss /= 10
 
         # # disable gradient computation and switch to evaluation mode
         # with torch.inference_mode():
