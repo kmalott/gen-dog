@@ -1,6 +1,23 @@
 import torch
 
 class AutoregressiveModel(torch.nn.Module):
+    class PositionalEncoding2D(torch.nn.Module):
+        def __init__(self, height, width, dim):
+            super().__init__()
+            self.row_embed = torch.nn.Parameter(torch.zeros(1, height, dim // 2))
+            self.col_embed = torch.nn.Parameter(torch.zeros(1, width, dim // 2))
+            torch.nn.init.trunc_normal_(self.row_embed, std=0.02)
+            torch.nn.init.trunc_normal_(self.col_embed, std=0.02)
+
+        def forward(self, x):
+            H, W = self.row_embed.shape[1], self.col_embed.shape[1]
+            pos = torch.cat([
+                self.row_embed.transpose(1, 2).unsqueeze(3).expand(-1, -1, -1, W),  # [1, dim//2, H, W]
+                self.col_embed.transpose(1, 2).unsqueeze(2).expand(-1, -1, H, -1),  # [1, dim//2, H, W]
+            ], dim=1)
+            pos = pos.flatten(2).transpose(1, 2)
+            return x + pos
+
     class PositionalEncoding(torch.nn.Module):
         def __init__(self, seq_len, d_model):
             super().__init__()
@@ -8,13 +25,12 @@ class AutoregressiveModel(torch.nn.Module):
             torch.nn.init.trunc_normal_(self.pos_embed, std=0.02)
 
         def forward(self, x):
-            # x: [batch, seq_len, dim]
             return x + self.pos_embed
 
     def __init__(self, d_latent: int = 1024, d_model: int = 512, codebook: int = 14, nhead: int = 1, num_layers: int = 1):
         super().__init__()
         self.n_tokens = 2**codebook
-        self.pos_encode = self.PositionalEncoding(1024, d_model)
+        self.pos_encode = self.PositionalEncoding2D(32, 32, d_model)
         self.embed = torch.nn.Embedding(num_embeddings=self.n_tokens, embedding_dim=d_model)
         decoder_layer = torch.nn.TransformerEncoderLayer(d_model=d_model, nhead=nhead, dim_feedforward=d_latent, batch_first=True)
         self.decoder = torch.nn.TransformerEncoder(decoder_layer, num_layers=num_layers)
@@ -28,26 +44,21 @@ class AutoregressiveModel(torch.nn.Module):
         # print(x.dtype) # torch.int64
         # print(x.min()) # 0
         # print(x.max()) # 1023
-        h = x.shape[1]
-        w = x.shape[2]
-        x = x.flatten(start_dim=1)
+        # h = x.shape[1]
+        # w = x.shape[2]
+        # x = x.flatten(start_dim=1)
         seq_len = x.shape[1]
         # print(x.shape) # [B, seq_len]
         x = self.embed(x)
         # print(x.shape) # [B, seq_len, d_model]
         x = self.pos_encode(x)
         # print(x.shape) # [B, seq_len, d_model]
-        x = self.pad(x.permute(0,2,1))
-        x = x.permute(0,2,1)
-        # print(x.shape) # [B, seq_len, d_model]
         # decoder expects [batch, seq_len, d_model]
-        x = self.decoder(x, torch.nn.Transformer.generate_square_subsequent_mask((seq_len+1), device=self.device), is_causal=True)
-        # print(x.shape) # [B, seq_len+1, d_model]
-        x = x[:,:-1,:] # remove padding
+        x = self.decoder(x, torch.nn.Transformer.generate_square_subsequent_mask((seq_len), device=self.device), is_causal=True)
         # print(x.shape) # [B, seq_len, d_model]
         x = self.token_head(x)
         # print(x.shape) # [B, seq_len, n_tokens]
-        x = x.contiguous().view(-1, h, w, self.n_tokens)
+        # x = x.contiguous().view(-1, h, w, self.n_tokens)
         # print(x.shape) # [B, 32, 32, n_tokens]
         return x
 
@@ -73,6 +84,27 @@ class AutoregressiveModel(torch.nn.Module):
         y_hat = y_hat[:, 1:]
         y_hat = y_hat.reshape(-1, h, w)
         return y_hat.contiguous()
+    
+    def generate_2d_local_mask(height, width, window_size, causal=True, device=None):
+        seq_len = height * width
+        mask = torch.full((seq_len, seq_len), float('-inf'), device=device)
+
+        # Flattened index to (row, col)
+        def idx_to_coords(idx):
+            return divmod(idx, width)
+
+        for i in range(seq_len):
+            row_i, col_i = idx_to_coords(i)
+
+            for j in range(seq_len):
+                row_j, col_j = idx_to_coords(j)
+
+                # Check if within local window
+                if abs(row_i - row_j) <= window_size and abs(col_i - col_j) <= window_size:
+                    if not causal or j <= i:
+                        mask[i, j] = 0  # allow attention
+
+        return mask
     
 def debug_model(batch_size: int = 1):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

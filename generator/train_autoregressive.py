@@ -8,7 +8,7 @@ import torch.utils.tensorboard as tb
 import torch.nn.functional as F
 
 from tqdm import tqdm
-import math
+import transformers
 
 from .autoregressive import AutoregressiveModel
 from .data import TokenDataset
@@ -48,6 +48,11 @@ def train(exp_dir: str = "logs",
     val_data = torch.utils.data.DataLoader(val_token, batch_size=batch_size, num_workers=4, shuffle=False)
     # create optimizer
     optimizer = torch.optim.AdamW(params=autoregressive.parameters(), lr=lr)
+    scheduler = transformers.get_cosine_schedule_with_warmup(
+        optimizer, 
+        num_warmup_steps=10,
+        num_training_steps=2000
+    )
 
     global_step = 0
     # training loop
@@ -59,26 +64,16 @@ def train(exp_dir: str = "logs",
         val_loss = torch.tensor([0.0])
         for x in tqdm(train_data):
             x = x.squeeze(1).to(device)
-            x_hat = autoregressive(x)
-            loss = (
-                    F.cross_entropy(x_hat.reshape(-1, x_hat.shape[-1]), x.reshape(-1), reduction="sum")
-                    / math.log(2)
-                    / x.shape[0]
-                )
+            x = x.flatten(start_dim=1)
+            zero = torch.zeros((x.shape[0], 1), device=device, dtype=torch.int64)
+            x = torch.concat((zero, x), dim=1)
+            x_hat = autoregressive(x[:,:-1])
+            loss = F.cross_entropy(x_hat.view(-1, 2**codebook), x[:, 1:].view(-1), reduction="sum")
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+            scheduler.step()
             train_loss += loss.item()
-
-            if epoch == 0 and global_step == 0:
-                from PIL import Image
-                tk_model = torch.load("../BSQTokenizer.th", weights_only=False, map_location=torch.device(device)).to(device)
-                images = tk_model.decode(tk_model.decode_int(x)).cpu().transpose(1,3)
-                np_images = (255 * (images).clip(0, 1)).to(torch.uint8).numpy()
-                for idx in range(0, np_images.shape[0]):
-                    Image.fromarray(np_images[idx,:,:,:], 'RGB').save("original.png")
-                tk_model = tk_model.cpu()
-
             global_step += 1
             if global_step > 10:
                 break
