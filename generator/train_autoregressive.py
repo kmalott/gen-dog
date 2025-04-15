@@ -61,7 +61,9 @@ def train(exp_dir: str = "logs",
         autoregressive.train()
         # reset losses
         train_loss = torch.tensor([0.0])
+        train_acc = torch.tensor([0.0])
         val_loss = torch.tensor([0.0])
+        val_acc = torch.tensor([0.0])
         for x in tqdm(train_data):
             x = x.squeeze(1).to(device)
             x = x.flatten(start_dim=1)
@@ -69,6 +71,8 @@ def train(exp_dir: str = "logs",
             x = torch.concat((zero, x), dim=1)
             x_hat = autoregressive(x[:,:-1])
             loss = F.cross_entropy(x_hat.view(-1, 2**codebook), x[:, 1:].view(-1), reduction="sum")
+            acc = torch.sum((x_hat.view(-1, 2**codebook).argmax(dim=1) == x[:, 1:].view(-1))) / x.shape[0]
+            train_acc += acc
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -79,6 +83,7 @@ def train(exp_dir: str = "logs",
                 break
         # train_loss /= len(train_token)
         train_loss /= 10
+        train_acc /= 10
 
         # # disable gradient computation and switch to evaluation mode
         # with torch.inference_mode():
@@ -103,6 +108,7 @@ def train(exp_dir: str = "logs",
             f"Epoch {epoch + 1:2d} / {num_epoch:2d}: \n"
             f"train_loss={train_loss} \n"
             f"val_loss={val_loss} \n"
+            f"train_acc={train_acc}"
         )
 
     # save a copy of model weights in the log directory
