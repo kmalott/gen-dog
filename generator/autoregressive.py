@@ -54,7 +54,8 @@ class AutoregressiveModel(torch.nn.Module):
         x = self.pos_encode(x)
         # print(x.shape) # [B, seq_len, d_model]
         # decoder expects [batch, seq_len, d_model]
-        x = self.decoder(x, torch.nn.Transformer.generate_square_subsequent_mask((seq_len), device=self.device), is_causal=True)
+        # x = self.decoder(x, torch.nn.Transformer.generate_square_subsequent_mask((seq_len), device=self.device), is_causal=True)
+        x = self.decoder(x, self.generate_2d_local_mask(32, 32, 3, causal=True, device=self.device), is_causal=True)
         # print(x.shape) # [B, seq_len, d_model]
         x = self.token_head(x)
         # print(x.shape) # [B, seq_len, n_tokens]
@@ -85,7 +86,7 @@ class AutoregressiveModel(torch.nn.Module):
         y_hat = y_hat.reshape(-1, h, w)
         return y_hat.contiguous()
     
-    def generate_2d_local_mask(height, width, window_size, causal=True, device=None):
+    def generate_2d_local_mask(self, height, width, window_size, causal=True, device=None):
         seq_len = height * width
         mask = torch.full((seq_len, seq_len), float('-inf'), device=device)
 
