@@ -25,7 +25,7 @@ def test_ar_forward(tokenizer, autoregressive):
         # print(x_hat.shape) # [1024, 16384]
         x_hat = torch.nan_to_num(x_hat, 0.0)
         x_hat = x_hat.clip(0, 2**14)
-        x_hat = torch.multinomial(x_hat, num_samples=1)
+        x_hat = torch.argmax(x_hat, dim=1)
         # print(x_hat.shape) # [1024, 1]
         x_hat = x_hat.view(-1, 32, 32).to(device)
         # print(x_hat.shape) # [1, 32, 32]
