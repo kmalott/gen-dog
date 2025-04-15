@@ -36,8 +36,8 @@ class AutoregressiveModel(torch.nn.Module):
         self.decoder = torch.nn.TransformerEncoder(decoder_layer, num_layers=num_layers)
         self.token_head = torch.nn.Linear(d_model, self.n_tokens)
         self.pad = torch.nn.ConstantPad1d((1, 0), 0)
-        self.mask = self.generate_2d_local_mask(32, 32, 3, causal=True, device=self.device)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.mask = self.generate_2d_local_mask(32, 32, 3, causal=True, device=self.device)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # x = x.to("cuda:0")
