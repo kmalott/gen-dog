@@ -70,8 +70,8 @@ def train(exp_dir: str = "logs",
             zero = torch.zeros((x.shape[0], 1), device=device, dtype=torch.int64)
             x = torch.concat((zero, x), dim=1)
             x_hat = autoregressive(x[:,:-1])
-            loss = F.cross_entropy(x_hat.view(-1, 2**codebook), x[:, 1:].view(-1), reduction="sum")
-            acc = (torch.sum((x_hat.view(-1, 2**codebook).argmax(dim=1) == x[:, 1:].view(-1))) / (x.shape[0] * x[:, 1:].shape[1])).cpu()
+            loss = F.cross_entropy(x_hat.reshape(-1, 2**codebook), x[:, 1:].reshape(-1), reduction="sum")
+            acc = (torch.sum((x_hat.reshape(-1, 2**codebook).argmax(dim=1) == x[:, 1:].reshape(-1))) / (x.shape[0] * x[:, 1:].shape[1])).cpu()
             train_acc += acc
             optimizer.zero_grad()
             loss.backward()
@@ -90,8 +90,8 @@ def train(exp_dir: str = "logs",
                 zero = torch.zeros((x.shape[0], 1), device=device, dtype=torch.int64)
                 x = torch.concat((zero, x), dim=1)
                 x_hat = autoregressive(x[:,:-1])
-                loss = F.cross_entropy(x_hat.view(-1, 2**codebook), x[:, 1:].view(-1), reduction="sum")
-                acc = (torch.sum((x_hat.view(-1, 2**codebook).argmax(dim=1) == x[:, 1:].view(-1))) / (x.shape[0] * x[:, 1:].shape[1])).cpu()
+                loss = F.cross_entropy(x_hat.reshape(-1, 2**codebook), x[:, 1:].reshape(-1), reduction="sum")
+                acc = (torch.sum((x_hat.reshape(-1, 2**codebook).argmax(dim=1) == x[:, 1:].reshape(-1))) / (x.shape[0] * x[:, 1:].shape[1])).cpu()
                 val_acc += acc
                 val_loss += loss.item()
             val_loss /= len(val_token)
