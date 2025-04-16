@@ -51,7 +51,7 @@ def train(exp_dir: str = "logs",
     scheduler = transformers.get_cosine_schedule_with_warmup(
         optimizer, 
         num_warmup_steps=10,
-        num_training_steps=2000
+        num_training_steps=len(train_token)*num_epoch
     )
 
     global_step = 0
@@ -79,26 +79,23 @@ def train(exp_dir: str = "logs",
             scheduler.step()
             train_loss += loss.item()
             global_step += 1
-            if global_step >= 10:
-                break
-        # train_loss /= len(train_token)
-        train_loss /= 10
-        train_acc /= 10
+        train_loss /= len(train_token)
+        train_acc /= len(train_token)
 
-        # # disable gradient computation and switch to evaluation mode
-        # with torch.inference_mode():
-        #     autoregressive.eval()
-        #     for x in tqdm(val_data):
-        #         x = x.squeeze(1).to(device)
-        #         x_hat = autoregressive(x)
-        #         loss = (
-        #             F.cross_entropy(x_hat.reshape(-1, x_hat.shape[-1]), x.reshape(-1), reduction="sum")
-        #             / math.log(2)
-        #             / x.shape[0]
-        #         )
-        #         val_loss += loss.item()
-        #     val_loss /= len(val_token)
-        val_loss = 0
+        # disable gradient computation and switch to evaluation mode
+        with torch.inference_mode():
+            autoregressive.eval()
+            for x in tqdm(val_data):
+                x = x.flatten(start_dim=1)
+                zero = torch.zeros((x.shape[0], 1), device=device, dtype=torch.int64)
+                x = torch.concat((zero, x), dim=1)
+                x_hat = autoregressive(x[:,:-1])
+                loss = F.cross_entropy(x_hat.view(-1, 2**codebook), x[:, 1:].view(-1), reduction="sum")
+                acc = (torch.sum((x_hat.view(-1, 2**codebook).argmax(dim=1) == x[:, 1:].view(-1))) / (x.shape[0] * x[:, 1:].shape[1])).cpu()
+                val_acc += acc
+                val_loss += loss.item()
+            val_loss /= len(val_token)
+            val_acc /= len(val_token)
 
         # log average train and val accuracy to tensorboard
         logger.add_scalar('train_loss', train_loss, global_step)
@@ -109,6 +106,7 @@ def train(exp_dir: str = "logs",
             f"train_loss={train_loss} \n"
             f"val_loss={val_loss} \n"
             f"train_acc={train_acc}"
+            f"val_acc={val_acc}"
         )
 
     # save a copy of model weights in the log directory
