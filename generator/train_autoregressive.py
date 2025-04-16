@@ -86,6 +86,7 @@ def train(exp_dir: str = "logs",
         with torch.inference_mode():
             autoregressive.eval()
             for x in tqdm(val_data):
+                x = x.squeeze(1).to(device)
                 x = x.flatten(start_dim=1)
                 zero = torch.zeros((x.shape[0], 1), device=device, dtype=torch.int64)
                 x = torch.concat((zero, x), dim=1)
