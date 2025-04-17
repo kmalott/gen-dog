@@ -43,6 +43,7 @@ def train(exp_dir: str = "logs",
     autoregressive.to(device)
     # load data loaders
     train_token = TokenDataset("train")
+    train_token = torch.utils.data.Subset(train_token, indices=list(range(0,1000)))
     val_token = TokenDataset("val")
     train_data = torch.utils.data.DataLoader(train_token, batch_size=batch_size, num_workers=4, shuffle=True)
     val_data = torch.utils.data.DataLoader(val_token, batch_size=batch_size, num_workers=4, shuffle=False)
@@ -50,7 +51,7 @@ def train(exp_dir: str = "logs",
     optimizer = torch.optim.AdamW(params=autoregressive.parameters(), lr=lr)
     scheduler = transformers.get_cosine_schedule_with_warmup(
         optimizer, 
-        num_warmup_steps=10,
+        num_warmup_steps=100,
         num_training_steps=len(train_token)*num_epoch
     )
 
