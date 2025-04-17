@@ -44,7 +44,7 @@ def train(exp_dir: str = "logs",
     # load data loaders
     train_token = TokenDataset("train")
     val_token = TokenDataset("val")
-    train_data = torch.utils.data.DataLoader(train_token, batch_size=batch_size, num_workers=4, shuffle=False)
+    train_data = torch.utils.data.DataLoader(train_token, batch_size=batch_size, num_workers=4, shuffle=True)
     val_data = torch.utils.data.DataLoader(val_token, batch_size=batch_size, num_workers=4, shuffle=False)
     # create optimizer
     optimizer = torch.optim.AdamW(params=autoregressive.parameters(), lr=lr)
