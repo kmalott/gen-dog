@@ -37,7 +37,7 @@ class AutoregressiveModel(torch.nn.Module):
         self.token_head = torch.nn.Linear(d_model, self.n_tokens)
         self.pad = torch.nn.ConstantPad1d((1, 0), 0)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.mask = self.generate_2d_local_mask(32, 32, 7, causal=True, device=self.device)
+        self.mask = self.generate_2d_local_mask(32, 32, 9, causal=True, device=self.device)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # x = x.to("cuda:0")
