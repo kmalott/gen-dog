@@ -51,7 +51,7 @@ def train(exp_dir: str = "logs",
     optimizer = torch.optim.AdamW(params=autoregressive.parameters(), lr=lr)
     scheduler = transformers.get_cosine_schedule_with_warmup(
         optimizer, 
-        num_warmup_steps=5000,
+        num_warmup_steps=10000,
         num_training_steps=len(train_token)*num_epoch
     )
 
