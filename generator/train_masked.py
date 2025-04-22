@@ -68,7 +68,7 @@ def train(exp_dir: str = "logs",
         for x in tqdm(train_data):
             x = x.squeeze(1).to(device)
             x = x.flatten(start_dim=1)
-            mask = torch.rand((batch_size, 1024), device=device) < torch.rand(1)
+            mask = torch.rand((batch_size, 1024), device=device) < torch.rand(1, device=device)
             target = x.clone()
             logits = masked(x, mask)
             loss = F.cross_entropy(logits[mask], target[mask])
@@ -89,7 +89,7 @@ def train(exp_dir: str = "logs",
         #     for x in tqdm(val_data):
         #         x = x.squeeze(1).to(device)
         #         x = x.flatten(start_dim=1)
-        #         mask = torch.rand((batch_size, 1024), device=device) < torch.rand(1)
+        #         mask = torch.rand((batch_size, 1024), device=device) < torch.rand(1, device=device)
         #         target = x.clone()
         #         logits = masked(x, mask)
         #         loss = F.cross_entropy(logits[mask], target[mask])
