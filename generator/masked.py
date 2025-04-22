@@ -38,17 +38,19 @@ class MaskedModel(torch.nn.Module):
         self.mask_token = 2**codebook
 
     def forward(self, x: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+        x_masked = x.clone()
+        x_masked[mask] = self.mask_token
         # print(x.shape) # [B, seq_len]
-        x = self.embed(x)
+        x_masked = self.embed(x_masked)
         # print(x.shape) # [B, seq_len, d_model]
-        x = self.pos_encode(x)
+        x_masked = self.pos_encode(x_masked)
         # print(x.shape) # [B, seq_len, d_model]
         # decoder expects [batch, seq_len, d_model]
-        x = self.decoder(x, mask)
+        x_masked = self.decoder(x_masked)
         # print(x.shape) # [B, seq_len, d_model]
-        x = self.token_head(x)
+        x_masked = self.token_head(x_masked)
         # print(x.shape) # [B, seq_len, n_tokens]
-        return x
+        return x_masked
 
     def generate(self, B: int = 1, h: int = 32, w: int = 32, steps: int = 8, device=None) -> torch.Tensor:
         pass
