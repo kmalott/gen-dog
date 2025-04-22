@@ -43,7 +43,7 @@ def train(exp_dir: str = "logs",
     masked.to(device)
     # load data loaders
     train_token = TokenDataset("train")
-    # train_token = torch.utils.data.Subset(train_token, indices=list(range(0,10)))
+    train_token = torch.utils.data.Subset(train_token, indices=list(range(0,100)))
     val_token = TokenDataset("val")
     train_data = torch.utils.data.DataLoader(train_token, batch_size=batch_size, num_workers=4, shuffle=True)
     val_data = torch.utils.data.DataLoader(val_token, batch_size=batch_size, num_workers=4, shuffle=False)
