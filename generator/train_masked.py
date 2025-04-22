@@ -63,8 +63,10 @@ def train(exp_dir: str = "logs",
         # reset losses
         train_loss = torch.tensor([0.0])
         train_acc = torch.tensor([0.0])
+        train_total = torch.tensor([0.0])
         val_loss = torch.tensor([0.0])
         val_acc = torch.tensor([0.0])
+        val_total = torch.tensor([0.0])
         for x in tqdm(train_data):
             x = x.squeeze(1).to(device)
             x = x.flatten(start_dim=1)
@@ -72,17 +74,19 @@ def train(exp_dir: str = "logs",
             mask = torch.rand((B, 1024), device=device) < torch.rand(1, device=device)
             target = x.clone()
             logits = masked(x, mask)
-            loss = F.cross_entropy(logits[mask], target[mask], reduction='mean')
-            acc = (torch.sum(logits[mask].argmax(dim=1) == target[mask]) / target[mask].shape[0]).cpu()
+            loss = F.cross_entropy(logits[mask], target[mask])
+            acc = (torch.sum(logits[mask].argmax(dim=1) == target[mask])).cpu()
+            total = target[mask].shape[0].cpu()
             train_acc += acc
+            train_total += total
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
             scheduler.step()
             train_loss += loss.item()
             global_step += 1
-        train_loss /= len(train_token)
-        train_acc /= len(train_token)
+        train_loss /= train_total
+        train_acc /= train_total
 
         # disable gradient computation and switch to evaluation mode
         # with torch.inference_mode():
@@ -94,12 +98,14 @@ def train(exp_dir: str = "logs",
         #         mask = torch.rand((B, 1024), device=device) < torch.rand(1, device=device)
         #         target = x.clone()
         #         logits = masked(x, mask)
-        #         loss = F.cross_entropy(logits[mask], target[mask], reduction='mean')
-        #         acc = (torch.sum(logits[mask].argmax(dim=1) == target[mask]) / target[mask].shape[0]).cpu()
+        #         loss = F.cross_entropy(logits[mask], target[mask])
+        #         acc = (torch.sum(logits[mask].argmax(dim=1) == target[mask])).cpu()
+        #         total = target[mask].shape[0].cpu()
         #         val_acc += acc
+        #         val_total += total
         #         val_loss += loss.item()
-        #     val_loss /= len(val_token)
-        #     val_acc /= len(val_token)
+        #     val_loss /= val_total
+        #     val_acc /= val_total
 
         # log average train and val accuracy to tensorboard
         logger.add_scalar('train_loss', train_loss, global_step)
