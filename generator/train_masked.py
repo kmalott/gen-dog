@@ -72,7 +72,7 @@ def train(exp_dir: str = "logs",
             mask = torch.rand((B, 1024), device=device) < torch.rand(1, device=device)
             target = x.clone()
             logits = masked(x, mask)
-            loss = F.cross_entropy(logits[mask], target[mask])
+            loss = F.cross_entropy(logits[mask], target[mask], reduction='mean')
             acc = (torch.sum(logits[mask].argmax(dim=1) == target[mask]) / target[mask].shape[0]).cpu()
             train_acc += acc
             optimizer.zero_grad()
@@ -94,7 +94,7 @@ def train(exp_dir: str = "logs",
         #         mask = torch.rand((B, 1024), device=device) < torch.rand(1, device=device)
         #         target = x.clone()
         #         logits = masked(x, mask)
-        #         loss = F.cross_entropy(logits[mask], target[mask])
+        #         loss = F.cross_entropy(logits[mask], target[mask], reduction='mean')
         #         acc = (torch.sum(logits[mask].argmax(dim=1) == target[mask]) / target[mask].shape[0]).cpu()
         #         val_acc += acc
         #         val_loss += loss.item()
