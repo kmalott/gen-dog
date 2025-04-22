@@ -76,7 +76,7 @@ def train(exp_dir: str = "logs",
             logits = masked(x, mask)
             loss = F.cross_entropy(logits[mask], target[mask])
             acc = (torch.sum(logits[mask].argmax(dim=1) == target[mask])).cpu()
-            total = target[mask].shape[0].cpu()
+            total = target[mask].shape[0]
             train_acc += acc
             train_total += total
             optimizer.zero_grad()
@@ -100,7 +100,7 @@ def train(exp_dir: str = "logs",
         #         logits = masked(x, mask)
         #         loss = F.cross_entropy(logits[mask], target[mask])
         #         acc = (torch.sum(logits[mask].argmax(dim=1) == target[mask])).cpu()
-        #         total = target[mask].shape[0].cpu()
+        #         total = target[mask].shape[0]
         #         val_acc += acc
         #         val_total += total
         #         val_loss += loss.item()
