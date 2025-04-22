@@ -83,21 +83,21 @@ def train(exp_dir: str = "logs",
         train_loss /= len(train_token)
         train_acc /= len(train_token)
 
-        # disable gradient computation and switch to evaluation mode
-        with torch.inference_mode():
-            masked.eval()
-            for x in tqdm(val_data):
-                x = x.squeeze(1).to(device)
-                x = x.flatten(start_dim=1)
-                mask = torch.rand((batch_size, 1024), device=device) < torch.rand(1)
-                target = x.clone()
-                logits = masked(x, mask)
-                loss = F.cross_entropy(logits[mask], target[mask])
-                acc = (torch.sum(logits[mask].argmax(dim=1) == target[mask]) / target[mask].shape[0]).cpu()
-                val_acc += acc
-                val_loss += loss.item()
-            val_loss /= len(val_token)
-            val_acc /= len(val_token)
+        # # disable gradient computation and switch to evaluation mode
+        # with torch.inference_mode():
+        #     masked.eval()
+        #     for x in tqdm(val_data):
+        #         x = x.squeeze(1).to(device)
+        #         x = x.flatten(start_dim=1)
+        #         mask = torch.rand((batch_size, 1024), device=device) < torch.rand(1)
+        #         target = x.clone()
+        #         logits = masked(x, mask)
+        #         loss = F.cross_entropy(logits[mask], target[mask])
+        #         acc = (torch.sum(logits[mask].argmax(dim=1) == target[mask]) / target[mask].shape[0]).cpu()
+        #         val_acc += acc
+        #         val_loss += loss.item()
+        #     val_loss /= len(val_token)
+        #     val_acc /= len(val_token)
 
         # log average train and val accuracy to tensorboard
         logger.add_scalar('train_loss', train_loss, global_step)
