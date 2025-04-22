@@ -85,7 +85,7 @@ def train(exp_dir: str = "logs",
             scheduler.step()
             train_loss += loss.item()
             global_step += 1
-        train_loss /= train_total
+        # train_loss /= train_total
         train_acc /= train_total
 
         # disable gradient computation and switch to evaluation mode
@@ -104,7 +104,7 @@ def train(exp_dir: str = "logs",
         #         val_acc += acc
         #         val_total += total
         #         val_loss += loss.item()
-        #     val_loss /= val_total
+        #     # val_loss /= val_total
         #     val_acc /= val_total
 
         # log average train and val accuracy to tensorboard
