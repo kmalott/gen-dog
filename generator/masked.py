@@ -52,6 +52,42 @@ class MaskedModel(torch.nn.Module):
         # print(x.shape) # [B, seq_len, n_tokens]
         return x_masked
 
-    def generate(self, B: int = 1, h: int = 32, w: int = 32, steps: int = 8, device=None) -> torch.Tensor:
-        pass
-    
+    def generate(self, B: int = 1, h: int = 32, w: int = 32, steps: int = 8, temperature: float = 1.0, device=None) -> torch.Tensor:
+        seq_len = h*w
+
+        # start with full mask
+        tokens = torch.full((B, seq_len), self.mask_token, dtype=torch.long).to(device)
+        mask = torch.ones_like(tokens, dtype=torch.bool)
+
+        # generation steps
+        for step in range(0, steps):
+            logits = self.forward(tokens, mask)  # [B, seq_len, vocab_size]
+            probs = torch.nn.functional.softmax(logits / temperature, dim=-1)
+
+            # Confidence: max logit/prob at each position
+            confidence, pred_tokens = probs.max(dim=-1)  # [B, seq_len]
+
+            # Only update masked positions
+            pred_tokens = torch.where(mask, pred_tokens, tokens)
+
+            # Determine how many tokens to unmask this step
+            ratio = ((step + 1) / steps) * (3.1415926 / 2)
+            total_mask = (torch.cos(torch.tensor([ratio])) * seq_len).ceil().long()
+            num_masked = mask[0].sum() # all elements have same num_masked
+            num_to_unmask = total_mask - (seq_len - num_masked)
+            # num_to_unmask = (num_masked * (1.0 - (step + 1) / steps)).long().clamp(min=1)
+
+            # Rank masked positions by confidence
+            conf_masked = confidence.masked_fill(~mask, -1e6)  # mask out unmasked
+            _, sorted_indices = conf_masked.sort(dim=1, descending=True)
+
+            # Build new mask
+            new_mask = mask.clone()
+            for b in range(B):
+                unmask_indices = sorted_indices[b, :num_to_unmask[b]]
+                new_mask[b, unmask_indices] = False
+
+            tokens = pred_tokens
+            mask = new_mask
+
+        return tokens
