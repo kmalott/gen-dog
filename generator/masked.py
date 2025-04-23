@@ -38,19 +38,13 @@ class MaskedModel(torch.nn.Module):
         self.token_head = torch.nn.Linear(d_model, self.n_tokens)
         self.mask_token = 2**codebook
 
-    def forward(self, x: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, attn_mask: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
         x_masked = x.clone()
-        # x_masked[mask] = self.mask_token
-        # print(x.shape) # [B, seq_len]
+        x_masked[mask] = self.mask_token
         x_masked = self.embed(x_masked)
-        # print(x.shape) # [B, seq_len, d_model]
         x_masked = self.pos_encode(x_masked)
-        # print(x.shape) # [B, seq_len, d_model]
-        # decoder expects [batch, seq_len, d_model]
-        x_masked = self.decoder(x_masked, mask)
-        # print(x.shape) # [B, seq_len, d_model]
+        x_masked = self.decoder(x_masked, attn_mask)
         x_masked = self.token_head(x_masked)
-        # print(x.shape) # [B, seq_len, n_tokens]
         return x_masked
 
     def generate(self, h: int = 32, w: int = 32, steps: int = 8, temperature: float = 1.0, device=None) -> torch.Tensor:
@@ -85,8 +79,8 @@ class MaskedModel(torch.nn.Module):
 
             # Build new mask
             new_mask = mask.clone()
-            unmask_indices = sorted_indices[:num_to_unmask]
-            new_mask[unmask_indices] = False
+            unmask_indices = sorted_indices[0, :num_to_unmask]
+            new_mask[0, unmask_indices] = False
 
             tokens = pred_tokens
             mask = new_mask
