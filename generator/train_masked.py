@@ -91,7 +91,6 @@ def train(exp_dir: str = "logs",
             train_acc += acc
             train_total += total
             global_step += 1
-            raise Exception("done")
         train_loss /= train_total
         train_acc /= train_total
 
