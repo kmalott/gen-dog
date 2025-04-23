@@ -71,10 +71,10 @@ def train(exp_dir: str = "logs",
             x = x.squeeze(1).to(device)
             x = x.flatten(start_dim=1)
             B, S = x.shape
-            ratio = torch.tensor([0.1], device=device)
-            # ratio = torch.rand(1, device=device)
-            # while ratio > 0.5:
-            #     ratio = torch.rand(1, device=device)
+            # ratio = torch.tensor([0.1], device=device)
+            ratio = torch.rand(1, device=device)
+            while ratio > 0.5:
+                ratio = torch.rand(1, device=device)
             mask = torch.rand((1, S), device=device) < ratio
             total = (mask.sum() * B).cpu()
             attn_mask = torch.where(mask, float('-inf'), 0.0).repeat(S, 1)
