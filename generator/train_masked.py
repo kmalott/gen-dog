@@ -72,8 +72,7 @@ def train(exp_dir: str = "logs",
             x = x.flatten(start_dim=1)
             B, S = x.shape
             # ratio = torch.tensor([0.1], device=device)
-            ratio = torch.rand(1, device=device)
-            # torch.cos(ratio)
+            ratio = torch.cos(torch.rand(1, device=device) * (3.1415926 / 2))
             mask = torch.rand((1, S), device=device) < ratio
             total = (mask.sum() * B).cpu()
             if total > 0:
@@ -93,6 +92,8 @@ def train(exp_dir: str = "logs",
         global_step += 1
         train_loss /= train_total
         train_acc /= train_total
+        print(train_total/len(train_data))
+        print(train_total/(len(train_data)*1024))
 
         # disable gradient computation and switch to evaluation mode
         # with torch.inference_mode():
