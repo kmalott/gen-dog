@@ -75,8 +75,8 @@ def train(exp_dir: str = "logs",
             # ratio = torch.rand(1, device=device)
             # while ratio > 0.5:
             #     ratio = torch.rand(1, device=device)
-            mask = torch.rand((B, S), device=device) < ratio
-            total = mask.sum()
+            mask = torch.rand((1, S), device=device) < ratio
+            total = (mask.sum() * B)
             attn_mask = torch.where(mask, float('-inf'), 0.0).repeat(S, 1)
             target = x.clone()
             logits = masked(x, attn_mask)
