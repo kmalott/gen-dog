@@ -30,7 +30,8 @@ class MaskedModel(torch.nn.Module):
     def __init__(self, d_latent: int = 1024, d_model: int = 512, codebook: int = 14, nhead: int = 1, num_layers: int = 1):
         super().__init__()
         self.n_tokens = 2**codebook
-        self.pos_encode = self.PositionalEncoding2D(32, 32, d_model)
+        # self.pos_encode = self.PositionalEncoding2D(32, 32, d_model)
+        self.pos_encode = self.PositionalEncoding(1024, d_model)
         self.embed = torch.nn.Embedding(num_embeddings=self.n_tokens+1, embedding_dim=d_model)
         decoder_layer = torch.nn.TransformerEncoderLayer(d_model=d_model, nhead=nhead, dim_feedforward=d_latent, batch_first=True)
         self.decoder = torch.nn.TransformerEncoder(decoder_layer, num_layers=num_layers)
@@ -39,14 +40,14 @@ class MaskedModel(torch.nn.Module):
 
     def forward(self, x: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
         x_masked = x.clone()
-        x_masked[mask] = self.mask_token
+        # x_masked[mask] = self.mask_token
         # print(x.shape) # [B, seq_len]
         x_masked = self.embed(x_masked)
         # print(x.shape) # [B, seq_len, d_model]
         x_masked = self.pos_encode(x_masked)
         # print(x.shape) # [B, seq_len, d_model]
         # decoder expects [batch, seq_len, d_model]
-        x_masked = self.decoder(x_masked)
+        x_masked = self.decoder(x_masked, mask)
         # print(x.shape) # [B, seq_len, d_model]
         x_masked = self.token_head(x_masked)
         # print(x.shape) # [B, seq_len, n_tokens]
