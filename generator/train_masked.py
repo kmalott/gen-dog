@@ -72,7 +72,8 @@ def train(exp_dir: str = "logs",
             x = x.flatten(start_dim=1)
             B, S = x.shape
             ratio = torch.cos(torch.rand(1, device=device) * (3.1415926 / 2))
-            mask = torch.rand((1, S), device=device) < ratio
+            # mask = torch.rand((1, S), device=device) < ratio
+            mask = torch.ones((1, S), dtype=bool, device=device)
             total = (mask.sum() * B).cpu()
             if total > 0:
                 attn_mask = torch.where(mask, float('-inf'), 0.0).repeat(S, 1)
