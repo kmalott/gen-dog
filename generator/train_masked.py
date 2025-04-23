@@ -73,24 +73,24 @@ def train(exp_dir: str = "logs",
             B, S = x.shape
             # ratio = torch.tensor([0.1], device=device)
             ratio = torch.rand(1, device=device)
-            while ratio > 0.5:
-                ratio = torch.rand(1, device=device)
+            # torch.cos(ratio)
             mask = torch.rand((1, S), device=device) < ratio
             total = (mask.sum() * B).cpu()
-            attn_mask = torch.where(mask, float('-inf'), 0.0).repeat(S, 1)
-            target = x.clone()
-            logits = masked(x, attn_mask)
-            mask = mask.expand(B, -1)
-            loss = F.cross_entropy(logits[mask], target[mask])
-            acc = (torch.sum(logits[mask].argmax(dim=1) == target[mask])).cpu()
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-            # scheduler.step()
-            train_loss += loss.item()
-            train_acc += acc
-            train_total += total
-            global_step += 1
+            if total > 0:
+                attn_mask = torch.where(mask, float('-inf'), 0.0).repeat(S, 1)
+                target = x.clone()
+                logits = masked(x, attn_mask)
+                mask = mask.expand(B, -1)
+                loss = F.cross_entropy(logits[mask], target[mask])
+                acc = (torch.sum(logits[mask].argmax(dim=1) == target[mask])).cpu()
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+                # scheduler.step()
+                train_loss += loss.item()
+                train_acc += acc
+                train_total += total
+        global_step += 1
         train_loss /= train_total
         train_acc /= train_total
 
