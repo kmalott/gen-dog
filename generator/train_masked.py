@@ -71,7 +71,6 @@ def train(exp_dir: str = "logs",
             x = x.squeeze(1).to(device)
             x = x.flatten(start_dim=1)
             B, S = x.shape
-            # ratio = torch.tensor([0.1], device=device)
             ratio = torch.cos(torch.rand(1, device=device) * (3.1415926 / 2))
             mask = torch.rand((1, S), device=device) < ratio
             total = (mask.sum() * B).cpu()
@@ -92,33 +91,29 @@ def train(exp_dir: str = "logs",
         global_step += 1
         train_loss /= train_total
         train_acc /= train_total
-        print(train_total/len(train_data))
-        print(train_total/(len(train_data)*1024))
 
         # disable gradient computation and switch to evaluation mode
-        # with torch.inference_mode():
-        #     masked.eval()
-        #     for x in tqdm(val_data):
-        #         x = x.squeeze(1).to(device)
-        #         x = x.flatten(start_dim=1)
-        #         B, S = x.shape
-        #         ratio = torch.tensor([0.1], device=device)
-        #             # ratio = torch.rand(1, device=device)
-        #             # while ratio > 0.5:
-        #             #     ratio = torch.rand(1, device=device)
-        #         mask = torch.rand((1, S), device=device) < ratio
-        #         total = (mask.sum() * B).cpu()
-        #         attn_mask = torch.where(mask, float('-inf'), 0.0).repeat(S, 1)
-        #         target = x.clone()
-        #         logits = masked(x, attn_mask)
-                # mask = mask.expand(B, -1)
-        #         loss = F.cross_entropy(logits[mask], target[mask])
-        #         acc = (torch.sum(logits[mask].argmax(dim=1) == target[mask])).cpu()
-        #         val_acc += acc
-        #         val_total += total
-        #         val_loss += loss.item()
-        #     # val_loss /= val_total
-        #     val_acc /= val_total
+        with torch.inference_mode():
+            masked.eval()
+            for x in tqdm(val_data):
+                x = x.squeeze(1).to(device)
+                x = x.flatten(start_dim=1)
+                B, S = x.shape
+                ratio = torch.cos(torch.rand(1, device=device) * (3.1415926 / 2))
+                mask = torch.rand((1, S), device=device) < ratio
+                total = (mask.sum() * B).cpu()
+                if total > 0:
+                    attn_mask = torch.where(mask, float('-inf'), 0.0).repeat(S, 1)
+                    target = x.clone()
+                    logits = masked(x, attn_mask)
+                    mask = mask.expand(B, -1)
+                    loss = F.cross_entropy(logits[mask], target[mask])
+                    acc = (torch.sum(logits[mask].argmax(dim=1) == target[mask])).cpu()
+                    val_acc += acc
+                    val_total += total
+                    val_loss += loss.item()
+            val_loss /= val_total
+            val_acc /= val_total
 
         # log average train and val accuracy to tensorboard
         logger.add_scalar('train_loss', train_loss, global_step)
