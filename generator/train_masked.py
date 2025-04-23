@@ -80,6 +80,7 @@ def train(exp_dir: str = "logs",
             attn_mask = torch.where(mask, float('-inf'), 0.0).repeat(S, 1)
             target = x.clone()
             logits = masked(x, attn_mask)
+            mask = mask.expand(B, -1)
             loss = F.cross_entropy(logits[mask], target[mask])
             acc = (torch.sum(logits[mask].argmax(dim=1) == target[mask])).cpu()
             optimizer.zero_grad()
@@ -90,6 +91,7 @@ def train(exp_dir: str = "logs",
             train_acc += acc
             train_total += total
             global_step += 1
+            raise Exception("done")
         train_loss /= train_total
         train_acc /= train_total
 
@@ -104,11 +106,12 @@ def train(exp_dir: str = "logs",
         #             # ratio = torch.rand(1, device=device)
         #             # while ratio > 0.5:
         #             #     ratio = torch.rand(1, device=device)
-        #         mask = torch.rand((B, S), device=device) < ratio
+        #         mask = torch.rand((1, S), device=device) < ratio
         #         total = mask.sum()
         #         attn_mask = torch.where(mask, float('-inf'), 0.0).repeat(S, 1)
         #         target = x.clone()
         #         logits = masked(x, attn_mask)
+                # mask = mask.expand(B, -1)
         #         loss = F.cross_entropy(logits[mask], target[mask])
         #         acc = (torch.sum(logits[mask].argmax(dim=1) == target[mask])).cpu()
         #         val_acc += acc
