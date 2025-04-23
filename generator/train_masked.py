@@ -77,8 +77,8 @@ def train(exp_dir: str = "logs",
             if total > 0:
                 attn_mask = torch.where(mask, float('-inf'), 0.0).repeat(S, 1)
                 target = x.clone()
-                logits = masked(x, attn_mask, mask)
                 mask = mask.expand(B, -1)
+                logits = masked(x, attn_mask, mask)
                 loss = F.cross_entropy(logits[mask], target[mask])
                 acc = (torch.sum(logits[mask].argmax(dim=1) == target[mask])).cpu()
                 optimizer.zero_grad()
@@ -105,8 +105,8 @@ def train(exp_dir: str = "logs",
         #         if total > 0:
         #             attn_mask = torch.where(mask, float('-inf'), 0.0).repeat(S, 1)
         #             target = x.clone()
-        #             logits = masked(x, attn_mask, mask)
         #             mask = mask.expand(B, -1)
+        #             logits = masked(x, attn_mask, mask)
         #             loss = F.cross_entropy(logits[mask], target[mask])
         #             acc = (torch.sum(logits[mask].argmax(dim=1) == target[mask])).cpu()
         #             val_acc += acc
