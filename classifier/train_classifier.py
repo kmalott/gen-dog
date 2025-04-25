@@ -60,7 +60,7 @@ def train(exp_dir: str = "logs",
             img, label = img.to(device), label.to(device)
             out = classifier(img)
             loss = cse_loss(out.squeeze(1,2), label)
-            acc = torch.sum(torch.nn.functional.softmax(out.squeeze(1,2), dim=-1).argmax(dim=-1) == label.cpu()) / out.shape[0]
+            acc = torch.sum(torch.nn.functional.softmax(out.squeeze(1,2), dim=-1).argmax(dim=-1).cpu() == label.cpu()) / out.shape[0]
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -76,7 +76,7 @@ def train(exp_dir: str = "logs",
                 img, label = img.to(device), label.to(device)
                 out = classifier(img)
                 loss = cse_loss(out.squeeze(1,2), label)
-                acc = torch.sum(torch.nn.functional.softmax(out.squeeze(1,2), dim=-1).argmax(dim=-1) == label.cpu()) / out.shape[0]
+                acc = torch.sum(torch.nn.functional.softmax(out.squeeze(1,2), dim=-1).argmax(dim=-1).cpu() == label.cpu()) / out.shape[0]
                 val_loss += loss.item()
             acc /= len(val_data)
             val_acc = acc
