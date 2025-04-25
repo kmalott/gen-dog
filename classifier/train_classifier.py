@@ -7,7 +7,7 @@ import torch
 import torch.utils.tensorboard as tb
 from tqdm import tqdm
 
-from .convnext import ConvNext, cls
+from .convnext import ConvNext
 from .data import load_data
 
 def train(exp_dir: str = "logs",
@@ -35,8 +35,7 @@ def train(exp_dir: str = "logs",
     log_dir = Path(exp_dir) / f"{model_name}_{datetime.now().strftime('%m%d_%H%M%S')}"
     logger = tb.SummaryWriter(log_dir)
 
-    # classifier = ConvNext(blocks_section_1=s1, blocks_section_2=s2, blocks_section_3=s3, blocks_section_4=s4)
-    classifier = cls()
+    classifier = ConvNext(blocks_section_1=s1, blocks_section_2=s2, blocks_section_3=s3, blocks_section_4=s4)
     classifier = classifier.to(device)
 
     # load data loaders
