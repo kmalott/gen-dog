@@ -39,7 +39,7 @@ def train(exp_dir: str = "logs",
     classifier = classifier.to(device)
 
     # load data loaders
-    train_data, val_data = load_data('./data/', batch_size=batch_size)
+    train_data, val_data = load_data('./data/', batch_size=batch_size, max_classes=9)
 
     # create loss functions and optimizer
     cse_loss = torch.nn.CrossEntropyLoss()
