@@ -45,7 +45,7 @@ def train(exp_dir: str = "logs",
     model = convnext_tiny(weights=weights)
     in_features = model.classifier[2].in_features
     model.classifier[2] = torch.nn.Linear(in_features, 120)
-    classifier = model
+    classifier = model.to(device)
 
     # load data loaders
     train_data, val_data = load_data('./data/', batch_size=batch_size, max_classes=9)
