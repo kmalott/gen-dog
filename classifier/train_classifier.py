@@ -4,6 +4,7 @@ from pathlib import Path
 
 import numpy as np
 import torch
+from torchvision.models import convnext_tiny, ConvNeXt_Tiny_Weights
 import torch.utils.tensorboard as tb
 from tqdm import tqdm
 
@@ -35,8 +36,16 @@ def train(exp_dir: str = "logs",
     log_dir = Path(exp_dir) / f"{model_name}_{datetime.now().strftime('%m%d_%H%M%S')}"
     logger = tb.SummaryWriter(log_dir)
 
-    classifier = ConvNext(blocks_section_1=s1, blocks_section_2=s2, blocks_section_3=s3, blocks_section_4=s4)
-    classifier = classifier.to(device)
+    # load custom ConvNext classifeir
+    # classifier = ConvNext(blocks_section_1=s1, blocks_section_2=s2, blocks_section_3=s3, blocks_section_4=s4)
+    # classifier = classifier.to(device)
+
+    # load pretrained ConvNext classifier
+    weights = ConvNeXt_Tiny_Weights.DEFAULT
+    model = convnext_tiny(weights=weights)
+    in_features = model.classifier[2].in_features
+    model.classifier[2] = torch.nn.Linear(in_features, 120)
+    classifier = model
 
     # load data loaders
     train_data, val_data = load_data('./data/', batch_size=batch_size, max_classes=9)
@@ -56,18 +65,27 @@ def train(exp_dir: str = "logs",
         train_acc = torch.tensor([0.0])
         val_acc = torch.tensor([0.0])
 
+        # reset accuracy counters
+        acc = 0
+        total = 0
+
         for img, label in tqdm(train_data):
             img, label = img.to(device), label.to(device)
             out = classifier(img)
-            loss = cse_loss(out.squeeze(1,2), label)
-            acc = torch.sum(torch.nn.functional.softmax(out.squeeze(1,2), dim=-1).argmax(dim=-1).cpu() == label.cpu()) / out.shape[0]
+            loss = cse_loss(out, label)
+            acc += torch.sum(torch.nn.functional.softmax(out, dim=-1).argmax(dim=-1).cpu() == label.cpu())
+            total += label.cpu().shape[0]
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
             train_loss += loss.item()
             global_step += 1
-        acc /= len(train_data)
+        acc /= total
         train_acc = acc
+
+        # reset accuracy counters
+        acc = 0
+        total = 0
 
         # disable gradient computation and switch to evaluation mode
         with torch.inference_mode():
@@ -75,10 +93,11 @@ def train(exp_dir: str = "logs",
             for img, label in tqdm(val_data):
                 img, label = img.to(device), label.to(device)
                 out = classifier(img)
-                loss = cse_loss(out.squeeze(1,2), label)
-                acc = torch.sum(torch.nn.functional.softmax(out.squeeze(1,2), dim=-1).argmax(dim=-1).cpu() == label.cpu()) / out.shape[0]
+                loss = cse_loss(out, label)
+                acc += torch.sum(torch.nn.functional.softmax(out, dim=-1).argmax(dim=-1).cpu() == label.cpu()) / out.shape[0]
+                total += label.cpu().shape[0]
                 val_loss += loss.item()
-            acc /= len(val_data)
+            acc /= total
             val_acc = acc
         
         # log train and validation loss
