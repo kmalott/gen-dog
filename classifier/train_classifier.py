@@ -80,7 +80,7 @@ def train(exp_dir: str = "logs",
             optimizer.step()
             train_loss += loss.item()
             global_step += 1
-        acc /= total
+        acc = acc.float() / total
         train_acc = acc
 
         # reset accuracy counters
@@ -97,7 +97,7 @@ def train(exp_dir: str = "logs",
                 acc += torch.sum(torch.nn.functional.softmax(out, dim=-1).argmax(dim=-1).cpu() == label.cpu()) / out.shape[0]
                 total += label.cpu().shape[0]
                 val_loss += loss.item()
-            acc /= total
+            acc = acc.float() / total
             val_acc = acc
         
         # log train and validation loss
