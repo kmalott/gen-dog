@@ -94,7 +94,7 @@ def train(exp_dir: str = "logs",
                 img, label = img.to(device), label.to(device)
                 out = classifier(img)
                 loss = cse_loss(out, label)
-                acc += torch.sum(torch.nn.functional.softmax(out, dim=-1).argmax(dim=-1).cpu() == label.cpu()) / out.shape[0]
+                acc += torch.sum(torch.nn.functional.softmax(out, dim=-1).argmax(dim=-1).cpu() == label.cpu())
                 total += label.cpu().shape[0]
                 val_loss += loss.item()
             acc = acc.float() / total
