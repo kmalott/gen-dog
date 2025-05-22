@@ -4,7 +4,7 @@ from pathlib import Path
 
 import numpy as np
 import torch
-from torchvision.models import convnext_tiny, ConvNeXt_Tiny_Weights
+from torchvision.models import convnext_small, ConvNeXt_Small_Weights
 import torch.utils.tensorboard as tb
 from tqdm import tqdm
 
@@ -41,8 +41,8 @@ def train(exp_dir: str = "logs",
     # classifier = classifier.to(device)
 
     # load pretrained ConvNext classifier
-    weights = ConvNeXt_Tiny_Weights.DEFAULT
-    model = convnext_tiny(weights=weights)
+    weights = ConvNeXt_Small_Weights.DEFAULT
+    model = convnext_small(weights=weights)
     in_features = model.classifier[2].in_features
     model.classifier[2] = torch.nn.Linear(in_features, 120)
     classifier = model.to(device)
